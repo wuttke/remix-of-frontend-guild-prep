@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageSquare } from "lucide-react";
 import { StatusBadge } from "@/components/pdg/StatusBadge";
 import { LogViewer } from "@/components/pdg/LogViewer";
 import { pdg } from "@/lib/pdg/client";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_app/jobs/$id")({
 
 function JobDetail() {
   const { id } = Route.useParams();
+  const router = useRouter();
   const job = useQuery({ queryKey: ["job", id], queryFn: () => pdg.getJob(id) });
   const [liveStatus, setLiveStatus] = useState<JobStatus | null>(null);
   const [returncode, setReturncode] = useState<number | null>(null);
@@ -38,22 +39,24 @@ function JobDetail() {
 
   return (
     <div className="space-y-4">
-      {data.conversation_id ? (
-        <Link
-          to="/conversations/$id"
-          params={{ id: data.conversation_id }}
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => router.history.back()}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to conversation
-        </Link>
-      ) : (
-        <Link
-          to="/jobs"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> All jobs
-        </Link>
-      )}
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        {data.conversation_id ? (
+          <Link
+            to="/conversations/$id"
+            params={{ id: data.conversation_id }}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <MessageSquare className="h-4 w-4" /> Conversation
+          </Link>
+        ) : null}
+      </div>
 
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
