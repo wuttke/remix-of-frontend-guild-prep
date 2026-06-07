@@ -35,7 +35,12 @@ export interface WorktreeCreated {
   path: string;
 }
 
-export type JobStatus = "queued" | "running" | "finished" | "failed";
+export type JobStatus =
+  | "queued"
+  | "running"
+  | "finished"
+  | "failed"
+  | "cancelled";
 export type LogStream = "stdout" | "stderr";
 
 export interface JobInfo {
