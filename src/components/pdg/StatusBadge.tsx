@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleDashed, Loader2, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, CircleDashed, Loader2, XCircle } from "lucide-react";
 import type { JobStatus } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,11 @@ const config: Record<
     label: "Failed",
     icon: XCircle,
     tone: "text-[color:var(--status-failed)] border-[color:var(--status-failed)]/40 bg-[color:var(--status-failed)]/10",
+  },
+  cancelled: {
+    label: "Cancelled",
+    icon: Ban,
+    tone: "text-[color:var(--status-cancelled)] border-[color:var(--status-cancelled)]/40 bg-[color:var(--status-cancelled)]/10",
   },
 };
 
