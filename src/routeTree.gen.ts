@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppReposRouteImport } from './routes/_app.repos'
+import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -27,27 +28,35 @@ const AppReposRoute = AppReposRouteImport.update({
   path: '/repos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConversationsRoute = AppConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/conversations': typeof AppConversationsRoute
   '/repos': typeof AppReposRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/conversations': typeof AppConversationsRoute
   '/repos': typeof AppReposRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/_app/conversations': typeof AppConversationsRoute
   '/_app/repos': typeof AppReposRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/repos'
+  fullPaths: '/' | '/conversations' | '/repos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/repos'
-  id: '__root__' | '/' | '/_app' | '/_app/repos'
+  to: '/' | '/conversations' | '/repos'
+  id: '__root__' | '/' | '/_app' | '/_app/conversations' | '/_app/repos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -78,14 +87,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReposRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/conversations': {
+      id: '/_app/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof AppConversationsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppConversationsRoute: typeof AppConversationsRoute
   AppReposRoute: typeof AppReposRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppConversationsRoute: AppConversationsRoute,
   AppReposRoute: AppReposRoute,
 }
 
@@ -98,3 +116,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
