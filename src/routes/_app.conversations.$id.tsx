@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Send } from "lucide-react";
+import { Archive, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_app/conversations/$id")({
 function ConversationDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
 
   const conv = useQuery({
@@ -49,6 +50,17 @@ function ConversationDetail() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const archive = useMutation({
+    mutationFn: () => pdg.archiveConversation(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["conversation", id] });
+      toast.success("Conversation archived");
+      navigate({ to: "/conversations" });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   if (conv.isLoading || !conv.data) {
     return <div className="h-24 animate-pulse rounded-xl bg-card/40" />;
   }
@@ -69,8 +81,16 @@ function ConversationDetail() {
         <ArrowLeft className="h-4 w-4" /> All conversations
       </Link>
 
-      <header>
-        <h1 className="font-display text-2xl font-semibold">{c.title ?? "Untitled"}</h1>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+        <h1 className="font-display text-2xl font-semibold">
+          {c.title ?? "Untitled"}
+          {c.archived ? (
+            <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
+              (archived)
+            </span>
+          ) : null}
+        </h1>
         <div className="mt-1 text-xs text-muted-foreground">
           <span className="font-mono">{c.repo_id}</span>
           {c.worktree ? (
@@ -82,6 +102,20 @@ function ConversationDetail() {
           {" · updated "}
           {formatDistanceToNow(new Date(c.updated_at), { addSuffix: true })}
         </div>
+        </div>
+        {!c.archived ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={hasRunningTurn || archive.isPending}
+            title={hasRunningTurn ? "Wait for running turns to finish" : "Archive conversation"}
+            onClick={() => archive.mutate()}
+          >
+            <Archive className="h-4 w-4" />
+            {archive.isPending ? "Archiving…" : "Archive"}
+          </Button>
+        ) : null}
       </header>
 
       {c.summary ? (
