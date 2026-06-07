@@ -22,6 +22,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { pdg } from "@/lib/pdg/client";
 import type { Repo, WorktreeInfo } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
@@ -158,16 +169,39 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
         </div>
       </div>
       {!worktree.is_primary && worktree.name ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-[color:var(--status-failed)]"
-          onClick={() => deleteMutation.mutate()}
-          disabled={deleteMutation.isPending}
-          aria-label={`Remove worktree ${worktree.name}`}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-[color:var(--status-failed)]"
+              disabled={deleteMutation.isPending}
+              aria-label={`Remove worktree ${worktree.name}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove worktree?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will delete the worktree{" "}
+                <span className="font-mono">{worktree.name}</span> (branch{" "}
+                <span className="font-mono">{worktree.branch}</span>). Uncommitted
+                changes will be lost.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMutation.mutate()}
+                className="bg-[color:var(--status-failed)] text-white hover:bg-[color:var(--status-failed)]/90"
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ) : null}
     </li>
   );
