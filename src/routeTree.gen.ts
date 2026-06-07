@@ -9,38 +9,117 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppReposRouteImport } from './routes/_app.repos'
+import { Route as AppJobsRouteImport } from './routes/_app.jobs'
+import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
+import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
+import { Route as AppConversationsIdRouteImport } from './routes/_app.conversations.$id'
 
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppReposRoute = AppReposRouteImport.update({
+  id: '/repos',
+  path: '/repos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConversationsRoute = AppConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsIdRoute = AppJobsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppJobsRoute,
+} as any)
+const AppConversationsIdRoute = AppConversationsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppConversationsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/conversations': typeof AppConversationsRouteWithChildren
+  '/jobs': typeof AppJobsRouteWithChildren
+  '/repos': typeof AppReposRoute
+  '/conversations/$id': typeof AppConversationsIdRoute
+  '/jobs/$id': typeof AppJobsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/conversations': typeof AppConversationsRouteWithChildren
+  '/jobs': typeof AppJobsRouteWithChildren
+  '/repos': typeof AppReposRoute
+  '/conversations/$id': typeof AppConversationsIdRoute
+  '/jobs/$id': typeof AppJobsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/conversations': typeof AppConversationsRouteWithChildren
+  '/_app/jobs': typeof AppJobsRouteWithChildren
+  '/_app/repos': typeof AppReposRoute
+  '/_app/conversations/$id': typeof AppConversationsIdRoute
+  '/_app/jobs/$id': typeof AppJobsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/conversations'
+    | '/jobs'
+    | '/repos'
+    | '/conversations/$id'
+    | '/jobs/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/conversations'
+    | '/jobs'
+    | '/repos'
+    | '/conversations/$id'
+    | '/jobs/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/_app/conversations'
+    | '/_app/jobs'
+    | '/_app/repos'
+    | '/_app/conversations/$id'
+    | '/_app/jobs/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +127,84 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/repos': {
+      id: '/_app/repos'
+      path: '/repos'
+      fullPath: '/repos'
+      preLoaderRoute: typeof AppReposRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs': {
+      id: '/_app/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/conversations': {
+      id: '/_app/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof AppConversationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs/$id': {
+      id: '/_app/jobs/$id'
+      path: '/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof AppJobsIdRouteImport
+      parentRoute: typeof AppJobsRoute
+    }
+    '/_app/conversations/$id': {
+      id: '/_app/conversations/$id'
+      path: '/$id'
+      fullPath: '/conversations/$id'
+      preLoaderRoute: typeof AppConversationsIdRouteImport
+      parentRoute: typeof AppConversationsRoute
+    }
   }
 }
 
+interface AppConversationsRouteChildren {
+  AppConversationsIdRoute: typeof AppConversationsIdRoute
+}
+
+const AppConversationsRouteChildren: AppConversationsRouteChildren = {
+  AppConversationsIdRoute: AppConversationsIdRoute,
+}
+
+const AppConversationsRouteWithChildren =
+  AppConversationsRoute._addFileChildren(AppConversationsRouteChildren)
+
+interface AppJobsRouteChildren {
+  AppJobsIdRoute: typeof AppJobsIdRoute
+}
+
+const AppJobsRouteChildren: AppJobsRouteChildren = {
+  AppJobsIdRoute: AppJobsIdRoute,
+}
+
+const AppJobsRouteWithChildren =
+  AppJobsRoute._addFileChildren(AppJobsRouteChildren)
+
+interface AppRouteChildren {
+  AppConversationsRoute: typeof AppConversationsRouteWithChildren
+  AppJobsRoute: typeof AppJobsRouteWithChildren
+  AppReposRoute: typeof AppReposRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppConversationsRoute: AppConversationsRouteWithChildren,
+  AppJobsRoute: AppJobsRouteWithChildren,
+  AppReposRoute: AppReposRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
