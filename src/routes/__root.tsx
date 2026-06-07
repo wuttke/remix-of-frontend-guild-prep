@@ -78,14 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Pocket Dev Guild" },
+      { name: "description", content: "Frontend Guild Prep is a web application for practicing frontend development skills." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Pocket Dev Guild" },
+      { property: "og:description", content: "Frontend Guild Prep is a web application for practicing frontend development skills." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Pocket Dev Guild" },
+      { name: "twitter:description", content: "Frontend Guild Prep is a web application for practicing frontend development skills." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/00b17f88-2059-43ca-b03e-93a4e0d33adc/id-preview-d8ff25df--4342c3a9-7def-471d-8590-e43470384f40.lovable.app-1780854805233.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/00b17f88-2059-43ca-b03e-93a4e0d33adc/id-preview-d8ff25df--4342c3a9-7def-471d-8590-e43470384f40.lovable.app-1780854805233.png" },
     ],
     links: [
       {
