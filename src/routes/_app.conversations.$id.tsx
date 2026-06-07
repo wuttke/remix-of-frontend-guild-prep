@@ -56,6 +56,9 @@ function ConversationDetail() {
   const orderedTurns = [...(turns.data?.items ?? [])].sort((a, b) =>
     a.created_at < b.created_at ? -1 : 1,
   );
+  const hasRunningTurn = orderedTurns.some(
+    (j) => j.status === "queued" || j.status === "running",
+  );
 
   return (
     <div className="space-y-4">
@@ -134,11 +137,15 @@ function ConversationDetail() {
           <Button
             size="sm"
             className="gap-1.5"
-            disabled={!prompt.trim() || sendTurn.isPending}
+            disabled={!prompt.trim() || sendTurn.isPending || hasRunningTurn}
             onClick={() => sendTurn.mutate()}
           >
             <Send className="h-4 w-4" />
-            {sendTurn.isPending ? "Sending…" : "Send"}
+            {sendTurn.isPending
+              ? "Sending…"
+              : hasRunningTurn
+                ? "Turn in progress…"
+                : "Send"}
           </Button>
         </div>
       </section>
