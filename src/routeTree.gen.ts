@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppReposRouteImport } from './routes/_app.repos'
+import { Route as AppJobsRouteImport } from './routes/_app.jobs'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 import { Route as AppConversationsIdRouteImport } from './routes/_app.conversations.$id'
 
@@ -29,6 +30,11 @@ const AppReposRoute = AppReposRouteImport.update({
   path: '/repos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConversationsRoute = AppConversationsRouteImport.update({
   id: '/conversations',
   path: '/conversations',
@@ -43,12 +49,14 @@ const AppConversationsIdRoute = AppConversationsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/conversations': typeof AppConversationsRouteWithChildren
+  '/jobs': typeof AppJobsRoute
   '/repos': typeof AppReposRoute
   '/conversations/$id': typeof AppConversationsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/conversations': typeof AppConversationsRouteWithChildren
+  '/jobs': typeof AppJobsRoute
   '/repos': typeof AppReposRoute
   '/conversations/$id': typeof AppConversationsIdRoute
 }
@@ -57,19 +65,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/_app/conversations': typeof AppConversationsRouteWithChildren
+  '/_app/jobs': typeof AppJobsRoute
   '/_app/repos': typeof AppReposRoute
   '/_app/conversations/$id': typeof AppConversationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/conversations' | '/repos' | '/conversations/$id'
+  fullPaths: '/' | '/conversations' | '/jobs' | '/repos' | '/conversations/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/conversations' | '/repos' | '/conversations/$id'
+  to: '/' | '/conversations' | '/jobs' | '/repos' | '/conversations/$id'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/_app/conversations'
+    | '/_app/jobs'
     | '/_app/repos'
     | '/_app/conversations/$id'
   fileRoutesById: FileRoutesById
@@ -102,6 +112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReposRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/jobs': {
+      id: '/_app/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/conversations': {
       id: '/_app/conversations'
       path: '/conversations'
@@ -132,11 +149,13 @@ const AppConversationsRouteWithChildren =
 
 interface AppRouteChildren {
   AppConversationsRoute: typeof AppConversationsRouteWithChildren
+  AppJobsRoute: typeof AppJobsRoute
   AppReposRoute: typeof AppReposRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppConversationsRoute: AppConversationsRouteWithChildren,
+  AppJobsRoute: AppJobsRoute,
   AppReposRoute: AppReposRoute,
 }
 
