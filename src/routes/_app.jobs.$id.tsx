@@ -38,12 +38,22 @@ function JobDetail() {
 
   return (
     <div className="space-y-4">
-      <Link
-        to="/jobs"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> All jobs
-      </Link>
+      {data.conversation_id ? (
+        <Link
+          to="/conversations/$id"
+          params={{ id: data.conversation_id }}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to conversation
+        </Link>
+      ) : (
+        <Link
+          to="/jobs"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> All jobs
+        </Link>
+      )}
 
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
