@@ -419,3 +419,4 @@ const apiUrl = import.meta.env.VITE_PDG_API_URL as string | undefined;
 
 export const pdg: PdgClient = apiUrl ? makeHttpClient(apiUrl) : makeMockClient();
 export const isMockMode = !apiUrl;
+export const apiBaseUrl = apiUrl ?? null;
