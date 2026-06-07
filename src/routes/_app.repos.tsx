@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -258,6 +258,3 @@ function SkeletonList({ count }: { count: number }) {
     </ul>
   );
 }
-
-// Re-export Link so unused import warning is suppressed if it lands in a future edit.
-export { Link as __Link };
