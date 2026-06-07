@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/pdg/EmptyState";
 import { pdg } from "@/lib/pdg/client";
 import type { JobStatus } from "@/lib/pdg/types";
 
-export const Route = createFileRoute("/_app/jobs")({
+export const Route = createFileRoute("/_app/jobs/")({
   head: () => ({
     meta: [
       { title: "Jobs · Pocket Dev Guild" },

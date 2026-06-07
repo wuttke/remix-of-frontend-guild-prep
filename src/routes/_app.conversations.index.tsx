@@ -27,7 +27,7 @@ import { EmptyState } from "@/components/pdg/EmptyState";
 import { pdg } from "@/lib/pdg/client";
 import type { ConversationInfo } from "@/lib/pdg/types";
 
-export const Route = createFileRoute("/_app/conversations")({
+export const Route = createFileRoute("/_app/conversations/")({
   head: () => ({
     meta: [
       { title: "Conversations · Pocket Dev Guild" },
