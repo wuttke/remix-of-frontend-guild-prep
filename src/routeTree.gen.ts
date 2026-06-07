@@ -14,6 +14,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppReposRouteImport } from './routes/_app.repos'
 import { Route as AppJobsRouteImport } from './routes/_app.jobs'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
+import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as AppConversationsIndexRouteImport } from './routes/_app.conversations.index'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppConversationsIdRouteImport } from './routes/_app.conversations.$id'
 
@@ -41,6 +43,16 @@ const AppConversationsRoute = AppConversationsRouteImport.update({
   path: '/conversations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppJobsRoute,
+} as any)
+const AppConversationsIndexRoute = AppConversationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppConversationsRoute,
+} as any)
 const AppJobsIdRoute = AppJobsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -59,14 +71,16 @@ export interface FileRoutesByFullPath {
   '/repos': typeof AppReposRoute
   '/conversations/$id': typeof AppConversationsIdRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/conversations/': typeof AppConversationsIndexRoute
+  '/jobs/': typeof AppJobsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/conversations': typeof AppConversationsRouteWithChildren
-  '/jobs': typeof AppJobsRouteWithChildren
   '/repos': typeof AppReposRoute
   '/conversations/$id': typeof AppConversationsIdRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/conversations': typeof AppConversationsIndexRoute
+  '/jobs': typeof AppJobsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,6 +91,8 @@ export interface FileRoutesById {
   '/_app/repos': typeof AppReposRoute
   '/_app/conversations/$id': typeof AppConversationsIdRoute
   '/_app/jobs/$id': typeof AppJobsIdRoute
+  '/_app/conversations/': typeof AppConversationsIndexRoute
+  '/_app/jobs/': typeof AppJobsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,14 +103,16 @@ export interface FileRouteTypes {
     | '/repos'
     | '/conversations/$id'
     | '/jobs/$id'
+    | '/conversations/'
+    | '/jobs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/conversations'
-    | '/jobs'
     | '/repos'
     | '/conversations/$id'
     | '/jobs/$id'
+    | '/conversations'
+    | '/jobs'
   id:
     | '__root__'
     | '/'
@@ -104,6 +122,8 @@ export interface FileRouteTypes {
     | '/_app/repos'
     | '/_app/conversations/$id'
     | '/_app/jobs/$id'
+    | '/_app/conversations/'
+    | '/_app/jobs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -148,6 +168,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConversationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/jobs/': {
+      id: '/_app/jobs/'
+      path: '/'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof AppJobsIndexRouteImport
+      parentRoute: typeof AppJobsRoute
+    }
+    '/_app/conversations/': {
+      id: '/_app/conversations/'
+      path: '/'
+      fullPath: '/conversations/'
+      preLoaderRoute: typeof AppConversationsIndexRouteImport
+      parentRoute: typeof AppConversationsRoute
+    }
     '/_app/jobs/$id': {
       id: '/_app/jobs/$id'
       path: '/$id'
@@ -167,10 +201,12 @@ declare module '@tanstack/react-router' {
 
 interface AppConversationsRouteChildren {
   AppConversationsIdRoute: typeof AppConversationsIdRoute
+  AppConversationsIndexRoute: typeof AppConversationsIndexRoute
 }
 
 const AppConversationsRouteChildren: AppConversationsRouteChildren = {
   AppConversationsIdRoute: AppConversationsIdRoute,
+  AppConversationsIndexRoute: AppConversationsIndexRoute,
 }
 
 const AppConversationsRouteWithChildren =
@@ -178,10 +214,12 @@ const AppConversationsRouteWithChildren =
 
 interface AppJobsRouteChildren {
   AppJobsIdRoute: typeof AppJobsIdRoute
+  AppJobsIndexRoute: typeof AppJobsIndexRoute
 }
 
 const AppJobsRouteChildren: AppJobsRouteChildren = {
   AppJobsIdRoute: AppJobsIdRoute,
+  AppJobsIndexRoute: AppJobsIndexRoute,
 }
 
 const AppJobsRouteWithChildren =
