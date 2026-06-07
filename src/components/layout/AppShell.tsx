@@ -1,6 +1,6 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { FolderGit2, MessageSquare, Terminal } from "lucide-react";
-import { isMockMode } from "@/lib/pdg/client";
+import { apiBaseUrl, isMockMode } from "@/lib/pdg/client";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -28,7 +28,14 @@ export function AppShell() {
             <span className="rounded-full border border-border/80 bg-muted/60 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
               mock
             </span>
-          ) : null}
+          ) : (
+            <span
+              className="rounded-full border border-[color:var(--status-finished)]/40 bg-[color:var(--status-finished)]/10 px-2 py-0.5 font-mono text-[10px] lowercase tracking-wider text-[color:var(--status-finished)]"
+              title={apiBaseUrl ?? ""}
+            >
+              live · {new URL(apiBaseUrl!).host}
+            </span>
+          )}
         </div>
       </header>
 
