@@ -316,9 +316,13 @@ function makeHttpClient(baseUrl: string): PdgClient {
   const url = (p: string) => `${baseUrl.replace(/\/$/, "")}${p}`;
 
   async function json<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+    const hasBody = init?.body != null;
     const res = await fetch(input, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: {
+        ...(hasBody ? { "Content-Type": "application/json" } : {}),
+        ...(init?.headers ?? {}),
+      },
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
