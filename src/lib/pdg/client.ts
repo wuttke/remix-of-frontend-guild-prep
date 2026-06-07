@@ -56,6 +56,7 @@ export interface PdgClient {
   listJobs(params?: ListJobsParams): Promise<PaginatedResponse<JobInfo>>;
   getJob(jobId: string): Promise<JobInfo>;
   getJobLog(jobId: string): Promise<JobLog>;
+  cancelJob(jobId: string): Promise<void>;
   streamJobEvents(
     jobId: string,
     handlers: {
@@ -172,6 +173,17 @@ function makeMockClient(): PdgClient {
       const job = jobs.find((j) => j.id === jobId);
       if (!job) throw new Error(`Job ${jobId} not found`);
       return { ...clone(job), log: clone(jobLogs[jobId] ?? []) };
+    },
+
+    async cancelJob(jobId) {
+      await delay();
+      const job = jobs.find((j) => j.id === jobId);
+      if (!job) throw new Error(`Job ${jobId} not found`);
+      if (job.status !== "queued" && job.status !== "running") {
+        throw new Error(`Job already terminal: status=${job.status}`);
+      }
+      job.status = "cancelled";
+      job.finished_at = new Date().toISOString();
     },
 
     streamJobEvents(jobId, handlers) {
@@ -342,6 +354,7 @@ function makeHttpClient(baseUrl: string): PdgClient {
     listJobs: (params) => json(url(`/jobs${qs(params as Record<string, unknown>)}`)),
     getJob: (jobId) => json(url(`/jobs/${jobId}`)),
     getJobLog: (jobId) => json(url(`/jobs/${jobId}/log`)),
+    cancelJob: (jobId) => json(url(`/jobs/${jobId}`), { method: "DELETE" }),
 
     streamJobEvents(jobId, handlers) {
       const es = new EventSource(url(`/jobs/${jobId}/events`));
