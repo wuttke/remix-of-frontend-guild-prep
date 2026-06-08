@@ -5,6 +5,7 @@ import {
   ChevronDown,
   FolderGit2,
   GitBranch,
+  MessageSquare,
   Plus,
   Trash2,
 } from "lucide-react";
