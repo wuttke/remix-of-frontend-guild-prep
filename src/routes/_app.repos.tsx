@@ -154,6 +154,8 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const worktreeName = worktree.name ?? null;
+
   return (
     <li className="flex items-center justify-between rounded-lg border border-border/40 bg-card/60 px-3 py-2">
       <div className="min-w-0">
@@ -170,41 +172,59 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
           {worktree.head?.slice(0, 12)} · {worktree.name ?? "—"}
         </div>
       </div>
-      {!worktree.is_primary && worktree.name ? (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+      <div className="flex items-center gap-1">
+        <NewConversationDialog
+          defaultRepoId={repoId}
+          defaultWorktree={worktreeName ?? "__none"}
+          variant="ghost"
+          size="icon"
+          trigger={
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-[color:var(--status-failed)]"
-              disabled={deleteMutation.isPending}
-              aria-label={`Remove worktree ${worktree.name}`}
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+              aria-label={`Start conversation in ${worktree.branch ?? "primary"}`}
             >
-              <Trash2 className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" />
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remove worktree?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will delete the worktree{" "}
-                <span className="font-mono">{worktree.name}</span> (branch{" "}
-                <span className="font-mono">{worktree.branch}</span>). Uncommitted
-                changes will be lost.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteMutation.mutate()}
-                className="bg-[color:var(--status-failed)] text-white hover:bg-[color:var(--status-failed)]/90"
+          }
+        />
+        {!worktree.is_primary && worktree.name ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-[color:var(--status-failed)]"
+                disabled={deleteMutation.isPending}
+                aria-label={`Remove worktree ${worktree.name}`}
               >
-                Remove
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      ) : null}
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove worktree?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will delete the worktree{" "}
+                  <span className="font-mono">{worktree.name}</span> (branch{" "}
+                  <span className="font-mono">{worktree.branch}</span>). Uncommitted
+                  changes will be lost.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate()}
+                  className="bg-[color:var(--status-failed)] text-white hover:bg-[color:var(--status-failed)]/90"
+                >
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
+      </div>
     </li>
   );
 }
