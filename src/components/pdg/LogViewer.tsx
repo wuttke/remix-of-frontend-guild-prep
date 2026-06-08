@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * Section Types & Grouping Logic
  * ============================================================================ */
 
-type SectionType = "normal" | "tool-call" | "tool-result";
+type SectionType = "normal" | "tool-call" | "tool-result" | "agent-thinking" | "summary";
 
 interface LogSection {
   type: SectionType;
@@ -19,14 +19,16 @@ interface LogSection {
 }
 
 /**
- * Pattern matching for tool calls and results
+ * Pattern matching for tool calls, results, agent thinking, and summaries
  * Matches both plain emoji and ANSI-colored versions
  */
 const TOOL_CALL_PATTERN = /🔧 Tool call: ([\w-]+)/;
 const TOOL_RESULT_PATTERN = /📋 Tool result: ([\w-]+)/;
+const AGENT_THINKING_PATTERN = /^🤖\s*$/; // Just the robot emoji, possibly with whitespace
+const SUMMARY_PATTERN = /^---+\s*$/; // Three or more dashes
 
 /**
- * Check if a line is a tool call/result marker
+ * Check if a line is a tool call/result/agent/summary marker
  */
 function getLineType(line: LogLine): { type: SectionType; toolName?: string } {
   const toolCall = line.line.match(TOOL_CALL_PATTERN);
@@ -39,13 +41,21 @@ function getLineType(line: LogLine): { type: SectionType; toolName?: string } {
     return { type: "tool-result", toolName: toolResult[1] };
   }
 
+  if (AGENT_THINKING_PATTERN.test(line.line.trim())) {
+    return { type: "agent-thinking" };
+  }
+
+  if (SUMMARY_PATTERN.test(line.line.trim())) {
+    return { type: "summary" };
+  }
+
   return { type: "normal" };
 }
 
 /**
  * Group flat log lines into collapsible sections
- * Tool calls and results become their own sections that include all following lines
- * until the next marker
+ * Tool calls, results, agent thinking, and summaries become their own sections
+ * that include all following lines until the next marker
  */
 function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
   const sections: LogSection[] = [];
@@ -54,8 +64,8 @@ function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
   for (const line of lines) {
     const { type, toolName } = getLineType(line);
 
-    if (type === "tool-call" || type === "tool-result") {
-      // Start a new section for tool call/result
+    if (type === "tool-call" || type === "tool-result" || type === "agent-thinking" || type === "summary") {
+      // Start a new section for tool call/result/agent/summary
       if (currentSection) {
         sections.push(currentSection);
       }
@@ -78,8 +88,8 @@ function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
         // Add to existing normal section
         currentSection.lines.push(line);
       } else {
-        // Current section is a tool section - add this line to it
-        // (tool sections capture all lines until next marker)
+        // Current section is a special section - add this line to it
+        // (special sections capture all lines until next marker)
         currentSection.lines.push(line);
       }
     }
@@ -116,12 +126,15 @@ function applyMarkdownToHtml(htmlString: string): string {
   // Handle bold: **text** -> <strong>text</strong>
   result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
-  // Handle headings: # Text -> styled span
+  // Handle headings: # Text -> styled span with colored/hidden hashtags
   result = result.replace(/^(#{1,6})\s+(.+)$/gm, (_, hashes, content) => {
     const level = hashes.length;
-    const fontSize = level === 1 ? '1.2em' : level === 2 ? '1.1em' : level === 3 ? '1.05em' : '1em';
-    const fontWeight = level <= 3 ? 600 : 500;
-    return `<span style="font-size: ${fontSize}; font-weight: ${fontWeight}; display: block;">${content}</span>`;
+    // Use bold + underline instead of size changes
+    const fontWeight = level <= 2 ? 700 : level <= 4 ? 600 : 500;
+    const textDecoration = level === 1 ? 'underline' : 'none';
+    const hashColor = 'rgba(156, 163, 175, 0.4)'; // muted color for hashtags
+
+    return `<span style="display: block; font-weight: ${fontWeight}; text-decoration: ${textDecoration};"><span style="color: ${hashColor};">${hashes}</span> ${content}</span>`;
   });
 
   return result;
@@ -197,9 +210,38 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
     );
   }
 
-  // Tool call/result sections are collapsible
-  const icon = type === "tool-call" ? "🔧" : "📋";
-  const label = type === "tool-call" ? "Tool call" : "Tool result";
+  // Determine icon, label, and styling for each section type
+  let icon: string;
+  let label: string;
+  let bgClass: string;
+
+  switch (type) {
+    case "tool-call":
+      icon = "🔧";
+      label = "Tool call";
+      bgClass = "bg-accent/10";
+      break;
+    case "tool-result":
+      icon = "📋";
+      label = "Tool result";
+      bgClass = "bg-muted/20";
+      break;
+    case "agent-thinking":
+      icon = "🤖";
+      label = "Agent response";
+      bgClass = "bg-blue-500/10";
+      break;
+    case "summary":
+      icon = "📝";
+      label = "Summary";
+      bgClass = "bg-green-500/10";
+      break;
+    default:
+      icon = "📄";
+      label = "Section";
+      bgClass = "bg-muted/10";
+  }
+
   const lineCount = lines.length;
 
   return (
@@ -210,8 +252,7 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
         className={cn(
           "flex w-full items-center gap-2 rounded px-2 py-1 font-mono text-xs transition-colors",
           "hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-ring",
-          type === "tool-call" && "bg-accent/10",
-          type === "tool-result" && "bg-muted/20",
+          bgClass,
         )}
       >
         {collapsed ? (
