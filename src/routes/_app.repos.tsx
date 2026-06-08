@@ -272,15 +272,21 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
                   id="archive-conversations"
                   checked={archiveConversations}
                   onCheckedChange={(checked) => setArchiveConversations(checked === true)}
+                  disabled={conversationsQuery.data?.total === 0}
                 />
                 <Label
                   htmlFor="archive-conversations"
-                  className="text-sm font-normal cursor-pointer"
+                  className={cn(
+                    "text-sm font-normal cursor-pointer",
+                    conversationsQuery.data?.total === 0 && "text-muted-foreground",
+                  )}
                 >
                   Archive conversations with this worktree
                   {conversationsQuery.data && conversationsQuery.data.total > 0
                     ? ` (${conversationsQuery.data.total} open)`
-                    : ""}
+                    : conversationsQuery.data?.total === 0
+                      ? " (0 open)"
+                      : ""}
                 </Label>
               </div>
 
