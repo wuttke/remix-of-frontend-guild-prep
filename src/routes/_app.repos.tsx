@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -151,11 +152,13 @@ function RepoCard({
 
 function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeInfo }) {
   const qc = useQueryClient();
+  const [archiveConversations, setArchiveConversations] = useState(false);
   const deleteMutation = useMutation({
-    mutationFn: () => pdg.deleteWorktree(repoId, worktree.name!),
+    mutationFn: () => pdg.deleteWorktree(repoId, worktree.name!, archiveConversations ? { archive_conversations: true } : undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["worktrees", repoId] });
       toast.success(`Removed ${worktree.name}`);
+      setArchiveConversations(false); // Reset for next use
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -218,8 +221,21 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
                   changes will be lost.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              <div className="flex items-center space-x-2 py-4">
+                <Checkbox
+                  id="archive-conversations"
+                  checked={archiveConversations}
+                  onCheckedChange={(checked) => setArchiveConversations(checked === true)}
+                />
+                <Label
+                  htmlFor="archive-conversations"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Archive conversations with this worktree
+                </Label>
+              </div>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setArchiveConversations(false)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => deleteMutation.mutate()}
                   className="bg-[color:var(--status-failed)] text-white hover:bg-[color:var(--status-failed)]/90"

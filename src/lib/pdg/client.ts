@@ -56,7 +56,7 @@ export interface PdgClient {
     body: WorktreeCreate,
     params?: WorktreeCreateParams,
   ): Promise<WorktreeCreated>;
-  deleteWorktree(repoId: string, name: string): Promise<WorktreeRemoved>;
+  deleteWorktree(repoId: string, name: string, params?: { archive_conversations?: boolean }): Promise<WorktreeRemoved>;
 
   listJobs(params?: ListJobsParams): Promise<PaginatedResponse<JobInfo>>;
   getJob(jobId: string): Promise<JobInfo>;
@@ -191,10 +191,11 @@ function makeMockClient(): PdgClient {
       return { name, path: wt.path! };
     },
 
-    async deleteWorktree(repoId, name) {
+    async deleteWorktree(repoId, name, params) {
       await delay();
       const list = worktrees[repoId] ?? [];
       worktrees[repoId] = list.filter((w) => w.name !== name);
+      void params; // Mock doesn't implement archive_conversations yet
       return { removed: name };
     },
 
@@ -407,8 +408,8 @@ function makeHttpClient(baseUrl: string): PdgClient {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    deleteWorktree: (repoId, name) =>
-      json(url(`/repos/${repoId}/worktrees/${name}`), { method: "DELETE" }),
+    deleteWorktree: (repoId, name, params) =>
+      json(url(`/repos/${repoId}/worktrees/${name}${qs(params as Record<string, unknown>)}`), { method: "DELETE" }),
 
     listJobs: (params) => json(url(`/jobs${qs(params as Record<string, unknown>)}`)),
     getJob: (jobId) => json(url(`/jobs/${jobId}`)),
