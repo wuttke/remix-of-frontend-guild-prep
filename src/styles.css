@@ -167,4 +167,23 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+
+  /* ANSI color support for terminal/log output */
+  /* These styles ensure ANSI colors from ansi-to-react look good on dark background */
+  /* The component uses inline styles, so these are fallbacks and enhancements */
+  .ansi-bold {
+    font-weight: 600;
+  }
+
+  .ansi-dim {
+    opacity: 0.7;
+  }
+
+  .ansi-italic {
+    font-style: italic;
+  }
+
+  .ansi-underline {
+    text-decoration: underline;
+  }
 }

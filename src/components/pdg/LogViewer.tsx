@@ -1,7 +1,85 @@
 import { useEffect, useRef, useState } from "react";
+import Ansi from "ansi-to-react";
 import { pdg } from "@/lib/pdg/client";
 import type { JobStatusEvent, LogLine, JobStatus } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
+
+/**
+ * Check if a line contains markdown patterns
+ */
+function hasMarkdown(text: string): boolean {
+  const hasBold = /\*\*[^*]+\*\*/.test(text);
+  const hasHeading = /^#{1,6}\s+/.test(text);
+  return hasBold || hasHeading;
+}
+
+/**
+ * Parse markdown in a plain text line (after ANSI has been converted to HTML)
+ * This creates a DOM manipulation approach for post-ANSI markdown parsing
+ */
+function applyMarkdownToHtml(htmlString: string): string {
+  let result = htmlString;
+
+  // Handle bold: **text** -> <strong>text</strong>
+  result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Handle headings: # Text -> styled span
+  result = result.replace(/^(#{1,6})\s+(.+)$/gm, (_, hashes, content) => {
+    const level = hashes.length;
+    const fontSize = level === 1 ? '1.2em' : level === 2 ? '1.1em' : level === 3 ? '1.05em' : '1em';
+    const fontWeight = level <= 3 ? 600 : 500;
+    return `<span style="font-size: ${fontSize}; font-weight: ${fontWeight}; display: block;">${content}</span>`;
+  });
+
+  return result;
+}
+
+/**
+ * Renders a single log line with ANSI color support and basic markdown parsing
+ */
+function LogLineContent({ line }: { line: LogLine }) {
+  const baseClassName = cn(
+    "whitespace-pre-wrap break-words",
+    line.stream === "stderr" ? "text-[color:var(--status-failed)]" : "text-foreground/90",
+  );
+
+  // Check if line has markdown - if not, just use ANSI parser
+  const lineHasMarkdown = hasMarkdown(line.line);
+
+  if (!lineHasMarkdown) {
+    // Simple case: just ANSI parsing
+    return (
+      <div className={baseClassName}>
+        <Ansi linkify={false} useClasses={false}>
+          {line.line}
+        </Ansi>
+      </div>
+    );
+  }
+
+  // Complex case: both ANSI and markdown
+  // We need to render ANSI first, then apply markdown to the result
+  // Use a ref to manipulate the DOM after Ansi renders
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current && lineHasMarkdown) {
+      const html = ref.current.innerHTML;
+      const withMarkdown = applyMarkdownToHtml(html);
+      if (html !== withMarkdown) {
+        ref.current.innerHTML = withMarkdown;
+      }
+    }
+  }, [line.line, lineHasMarkdown]);
+
+  return (
+    <div ref={ref} className={baseClassName}>
+      <Ansi linkify={false} useClasses={false}>
+        {line.line}
+      </Ansi>
+    </div>
+  );
+}
 
 export function LogViewer({
   jobId,
@@ -60,15 +138,7 @@ export function LogViewer({
         <div className="text-muted-foreground italic">Waiting for output…</div>
       ) : (
         lines.map((line, i) => (
-          <div
-            key={i}
-            className={cn(
-              "whitespace-pre-wrap",
-              line.stream === "stderr" ? "text-[color:var(--status-failed)]" : "text-foreground/90",
-            )}
-          >
-            {line.line}
-          </div>
+          <LogLineContent key={i} line={line} />
         ))
       )}
     </div>

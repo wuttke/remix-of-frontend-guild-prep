@@ -163,7 +163,7 @@ function ConversationDetail() {
         <Textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Send another turn to the agent…"
+          placeholder={orderedTurns.length === 0 ? "What do you want to do today?" : "Send another turn to the agent…"}
           rows={3}
           className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         />

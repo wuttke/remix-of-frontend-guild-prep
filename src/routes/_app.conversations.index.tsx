@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -138,6 +138,7 @@ function ConversationRow({ conversation }: { conversation: ConversationInfo }) {
 
 function NewConversationDialog() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [repoId, setRepoId] = useState<string>("");
   const [worktree, setWorktree] = useState<string>("__none");
@@ -158,13 +159,15 @@ function NewConversationDialog() {
         agent_id: null,
         title: title || null,
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       toast.success("Conversation created");
       setOpen(false);
       setTitle("");
       setRepoId("");
       setWorktree("__none");
+      // Navigate to the new conversation page
+      navigate({ to: "/conversations/$id", params: { id: data.id } });
     },
     onError: (err: Error) => toast.error(err.message),
   });
