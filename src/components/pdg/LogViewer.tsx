@@ -1,8 +1,101 @@
 import { useEffect, useRef, useState } from "react";
 import Ansi from "ansi-to-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { pdg } from "@/lib/pdg/client";
 import type { JobStatusEvent, LogLine, JobStatus } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
+
+/* ============================================================================
+ * Section Types & Grouping Logic
+ * ============================================================================ */
+
+type SectionType = "normal" | "tool-call" | "tool-result";
+
+interface LogSection {
+  type: SectionType;
+  toolName?: string;
+  lines: LogLine[];
+  collapsed: boolean;
+}
+
+/**
+ * Pattern matching for tool calls and results
+ * Matches both plain emoji and ANSI-colored versions
+ */
+const TOOL_CALL_PATTERN = /🔧 Tool call: ([\w-]+)/;
+const TOOL_RESULT_PATTERN = /📋 Tool result: ([\w-]+)/;
+
+/**
+ * Check if a line is a tool call/result marker
+ */
+function getLineType(line: LogLine): { type: SectionType; toolName?: string } {
+  const toolCall = line.line.match(TOOL_CALL_PATTERN);
+  if (toolCall) {
+    return { type: "tool-call", toolName: toolCall[1] };
+  }
+
+  const toolResult = line.line.match(TOOL_RESULT_PATTERN);
+  if (toolResult) {
+    return { type: "tool-result", toolName: toolResult[1] };
+  }
+
+  return { type: "normal" };
+}
+
+/**
+ * Group flat log lines into collapsible sections
+ * Tool calls and results become their own sections that include all following lines
+ * until the next marker
+ */
+function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
+  const sections: LogSection[] = [];
+  let currentSection: LogSection | null = null;
+
+  for (const line of lines) {
+    const { type, toolName } = getLineType(line);
+
+    if (type === "tool-call" || type === "tool-result") {
+      // Start a new section for tool call/result
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+      currentSection = {
+        type,
+        toolName,
+        lines: [line],
+        collapsed: false, // Will be set based on size later
+      };
+    } else {
+      // Normal line - add to current section or create new normal section
+      if (!currentSection) {
+        // No current section, create a normal one
+        currentSection = {
+          type: "normal",
+          lines: [line],
+          collapsed: false,
+        };
+      } else if (currentSection.type === "normal") {
+        // Add to existing normal section
+        currentSection.lines.push(line);
+      } else {
+        // Current section is a tool section - add this line to it
+        // (tool sections capture all lines until next marker)
+        currentSection.lines.push(line);
+      }
+    }
+  }
+
+  // Don't forget the last section
+  if (currentSection) {
+    sections.push(currentSection);
+  }
+
+  // Set default collapsed state: collapse tool results > 50 lines
+  return sections.map((section) => ({
+    ...section,
+    collapsed: section.type === "tool-result" && section.lines.length > 50,
+  }));
+}
 
 /**
  * Check if a line contains markdown patterns
@@ -81,6 +174,72 @@ function LogLineContent({ line }: { line: LogLine }) {
   );
 }
 
+/* ============================================================================
+ * Collapsible Section Component
+ * ============================================================================ */
+
+interface CollapsibleSectionProps {
+  section: LogSection;
+  onToggle: () => void;
+}
+
+function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
+  const { type, toolName, lines, collapsed } = section;
+
+  // Normal sections render directly without collapsing
+  if (type === "normal") {
+    return (
+      <>
+        {lines.map((line, i) => (
+          <LogLineContent key={i} line={line} />
+        ))}
+      </>
+    );
+  }
+
+  // Tool call/result sections are collapsible
+  const icon = type === "tool-call" ? "🔧" : "📋";
+  const label = type === "tool-call" ? "Tool call" : "Tool result";
+  const lineCount = lines.length;
+
+  return (
+    <div className="my-1">
+      {/* Header with toggle */}
+      <button
+        onClick={onToggle}
+        className={cn(
+          "flex w-full items-center gap-2 rounded px-2 py-1 font-mono text-xs transition-colors",
+          "hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-ring",
+          type === "tool-call" && "bg-accent/10",
+          type === "tool-result" && "bg-muted/20",
+        )}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3 w-3 flex-shrink-0" />
+        ) : (
+          <ChevronDown className="h-3 w-3 flex-shrink-0" />
+        )}
+        <span className="flex-shrink-0">
+          {icon} {label}
+          {toolName ? `: ${toolName}` : ""}
+        </span>
+        <span className="text-muted-foreground">
+          ({lineCount} line{lineCount === 1 ? "" : "s"})
+        </span>
+      </button>
+
+      {/* Content - only render when expanded */}
+      {!collapsed && (
+        <div className="ml-5 mt-1 border-l-2 border-muted/30 pl-2">
+          {lines.map((line, i) => (
+            <LogLineContent key={i} line={line} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LogViewer({
   jobId,
   jobStatus,
@@ -93,6 +252,7 @@ export function LogViewer({
   className?: string;
 }) {
   const [lines, setLines] = useState<LogLine[]>([]);
+  const [sections, setSections] = useState<LogSection[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,27 +280,82 @@ export function LogViewer({
     return unsubscribe;
   }, [jobId, jobStatus, onStatus]);
 
+  // Group lines into sections whenever lines change
+  useEffect(() => {
+    setSections(groupLogsIntoSections(lines));
+  }, [lines]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [lines]);
 
+  // Toggle a section's collapsed state
+  const toggleSection = (index: number) => {
+    setSections((prev) =>
+      prev.map((section, i) =>
+        i === index ? { ...section, collapsed: !section.collapsed } : section
+      )
+    );
+  };
+
+  // Expand/collapse all tool sections
+  const expandAll = () => {
+    setSections((prev) =>
+      prev.map((section) => ({ ...section, collapsed: false }))
+    );
+  };
+
+  const collapseAll = () => {
+    setSections((prev) =>
+      prev.map((section) =>
+        section.type === "normal" ? section : { ...section, collapsed: true }
+      )
+    );
+  };
+
+  // Check if there are any collapsible sections
+  const hasCollapsibleSections = sections.some(
+    (s) => s.type === "tool-call" || s.type === "tool-result"
+  );
+
   return (
-    <div
-      ref={scrollRef}
-      className={cn(
-        "h-[55vh] overflow-y-auto rounded-lg border border-border/60 bg-[oklch(0.14_0.01_250)] p-3 font-mono text-[12px] leading-relaxed",
-        className,
+    <div className="space-y-2">
+      {/* Expand/Collapse All buttons */}
+      {hasCollapsibleSections && lines.length > 0 && (
+        <div className="flex gap-2">
+          <button
+            onClick={expandAll}
+            className="rounded bg-muted/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            Expand All
+          </button>
+          <button
+            onClick={collapseAll}
+            className="rounded bg-muted/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            Collapse All
+          </button>
+        </div>
       )}
-    >
-      {lines.length === 0 ? (
-        <div className="text-muted-foreground italic">Waiting for output…</div>
-      ) : (
-        lines.map((line, i) => (
-          <LogLineContent key={i} line={line} />
-        ))
-      )}
+
+      {/* Log content */}
+      <div
+        ref={scrollRef}
+        className={cn(
+          "h-[55vh] overflow-y-auto rounded-lg border border-border/60 bg-[oklch(0.14_0.01_250)] p-3 font-mono text-[12px] leading-relaxed",
+          className,
+        )}
+      >
+        {lines.length === 0 ? (
+          <div className="text-muted-foreground italic">Waiting for output…</div>
+        ) : (
+          sections.map((section, i) => (
+            <CollapsibleSection key={i} section={section} onToggle={() => toggleSection(i)} />
+          ))
+        )}
+      </div>
     </div>
   );
 }
