@@ -163,6 +163,12 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
     enabled: dialogOpen && worktree.name != null,
   });
 
+  const conversationsQuery = useQuery({
+    queryKey: ["conversations", { repo_id: repoId, worktree: worktree.name }],
+    queryFn: () => pdg.listConversations({ repo_id: repoId, worktree: worktree.name ?? undefined }),
+    enabled: dialogOpen && worktree.name != null,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () =>
       pdg.deleteWorktree(
@@ -272,6 +278,9 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
                   className="text-sm font-normal cursor-pointer"
                 >
                   Archive conversations with this worktree
+                  {conversationsQuery.data && conversationsQuery.data.total > 0
+                    ? ` (${conversationsQuery.data.total} open)`
+                    : ""}
                 </Label>
               </div>
 
