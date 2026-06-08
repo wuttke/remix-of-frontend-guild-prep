@@ -31,9 +31,9 @@ export function AppShell() {
           ) : (
             <span
               className="rounded-full border border-[color:var(--status-finished)]/40 bg-[color:var(--status-finished)]/10 px-2 py-0.5 font-mono text-[10px] lowercase tracking-wider text-[color:var(--status-finished)]"
-              title={apiBaseUrl ?? ""}
+              title="Connected to backend at /api"
             >
-              live · {new URL(apiBaseUrl!).host}
+              live
             </span>
           )}
         </div>

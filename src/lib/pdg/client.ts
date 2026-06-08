@@ -4,12 +4,12 @@
  * Defines a `PdgClient` interface that mirrors the FastAPI REST API
  * documented in FRONTEND.md, plus two implementations:
  *
- *   - `mockClient`  — in-memory data, used by default during development.
- *   - `httpClient`  — fetch + EventSource against a real backend base URL.
+ *   - `mockClient`  — in-memory data for development without backend.
+ *   - `httpClient`  — fetch + EventSource against the real backend at /api.
  *
- * Swap by setting `VITE_PDG_API_URL` to your backend, e.g. `http://localhost:8000`.
- * Until then, the mock is active and all SSE streams are simulated with
- * intervals so the UI feels live.
+ * Toggle between mock and live mode by setting VITE_USE_MOCK_DATA:
+ *   - VITE_USE_MOCK_DATA=true  → uses mock data (default for development)
+ *   - VITE_USE_MOCK_DATA=false → uses real backend at /api (for production/testing)
  */
 
 import {
@@ -419,8 +419,11 @@ function makeHttpClient(baseUrl: string): PdgClient {
   };
 }
 
-const apiUrl = import.meta.env.VITE_PDG_API_URL as string | undefined;
+// Toggle between mock and live mode via VITE_USE_MOCK_DATA environment variable.
+// Default is true (mock mode) for easy development without backend.
+// Set VITE_USE_MOCK_DATA=false to use the real backend at /api.
+const useMockData = import.meta.env.VITE_USE_MOCK_DATA !== "false";
 
-export const pdg: PdgClient = apiUrl ? makeHttpClient(apiUrl) : makeMockClient();
-export const isMockMode = !apiUrl;
-export const apiBaseUrl = apiUrl ?? null;
+export const pdg: PdgClient = useMockData ? makeMockClient() : makeHttpClient("/api");
+export const isMockMode = useMockData;
+export const apiBaseUrl = useMockData ? null : "/api";
