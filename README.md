@@ -40,7 +40,7 @@ Lovable übertragen):
 VITE_USE_MOCK_DATA=false
 ```
 
-Vite proxied dann `/api/*` → `http://localhost:8000/*` (siehe `vite.config.ts`).
+Vite proxied dann `/api/*` → `http://localhost:8000/api/*` (siehe `vite.config.ts`).
 
 
 ### Backend starten (für Live-Modus)
