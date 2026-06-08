@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { pdg } from "@/lib/pdg/client";
-import type { JobStatusEvent, LogLine } from "@/lib/pdg/types";
+import type { JobStatusEvent, LogLine, JobStatus } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
 
 export function LogViewer({
   jobId,
+  jobStatus,
   onStatus,
   className,
 }: {
   jobId: string;
+  jobStatus?: JobStatus;
   onStatus?: (event: JobStatusEvent) => void;
   className?: string;
 }) {
@@ -17,12 +19,27 @@ export function LogViewer({
 
   useEffect(() => {
     setLines([]);
+
+    // For completed jobs, fetch logs once instead of streaming
+    const isCompleted = jobStatus === "finished" || jobStatus === "failed" || jobStatus === "cancelled";
+
+    if (isCompleted) {
+      // Fetch all logs at once for completed jobs
+      pdg.getJobLog(jobId).then((jobLog) => {
+        setLines(jobLog.log);
+      }).catch((err) => {
+        console.error("Failed to fetch job log:", err);
+      });
+      return; // No cleanup needed for one-time fetch
+    }
+
+    // For active jobs (queued/running), stream events
     const unsubscribe = pdg.streamJobEvents(jobId, {
       onLog: (line) => setLines((prev) => [...prev, line]),
       onStatus: (event) => onStatus?.(event),
     });
     return unsubscribe;
-  }, [jobId, onStatus]);
+  }, [jobId, jobStatus, onStatus]);
 
   useEffect(() => {
     const el = scrollRef.current;

@@ -144,7 +144,7 @@ function JobDetail() {
         </div>
       </header>
 
-      <LogViewer jobId={id} onStatus={onStatus} />
+      <LogViewer jobId={id} jobStatus={status} onStatus={onStatus} />
     </div>
   );
 }
