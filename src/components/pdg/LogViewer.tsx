@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * Section Types & Grouping Logic
  * ============================================================================ */
 
-type SectionType = "normal" | "tool-call" | "tool-result" | "agent-thinking" | "summary";
+type SectionType = "normal" | "tool" | "agent-response" | "summary";
 
 interface LogSection {
   type: SectionType;
@@ -19,30 +19,31 @@ interface LogSection {
 }
 
 /**
- * Pattern matching for tool calls, results, agent thinking, and summaries
+ * Pattern matching for tool calls/results, agent responses, and summaries
  * Matches both plain emoji and ANSI-colored versions
  */
 const TOOL_CALL_PATTERN = /🔧 Tool call: ([\w-]+)/;
 const TOOL_RESULT_PATTERN = /📋 Tool result: ([\w-]+)/;
-const AGENT_THINKING_PATTERN = /^🤖\s*$/; // Just the robot emoji, possibly with whitespace
+const AGENT_RESPONSE_PATTERN = /^🤖\s*$/; // Just the robot emoji, possibly with whitespace
 const SUMMARY_PATTERN = /^---+\s*$/; // Three or more dashes
 
 /**
- * Check if a line is a tool call/result/agent/summary marker
+ * Check if a line is a tool/agent/summary marker
  */
 function getLineType(line: LogLine): { type: SectionType; toolName?: string } {
   const toolCall = line.line.match(TOOL_CALL_PATTERN);
   if (toolCall) {
-    return { type: "tool-call", toolName: toolCall[1] };
+    return { type: "tool", toolName: toolCall[1] };
   }
 
   const toolResult = line.line.match(TOOL_RESULT_PATTERN);
   if (toolResult) {
-    return { type: "tool-result", toolName: toolResult[1] };
+    // Tool results are part of the same tool section, so continue previous section
+    return { type: "tool", toolName: toolResult[1] };
   }
 
-  if (AGENT_THINKING_PATTERN.test(line.line.trim())) {
-    return { type: "agent-thinking" };
+  if (AGENT_RESPONSE_PATTERN.test(line.line.trim())) {
+    return { type: "agent-response" };
   }
 
   if (SUMMARY_PATTERN.test(line.line.trim())) {
@@ -54,7 +55,7 @@ function getLineType(line: LogLine): { type: SectionType; toolName?: string } {
 
 /**
  * Group flat log lines into collapsible sections
- * Tool calls, results, agent thinking, and summaries become their own sections
+ * Tools (call + result), agent responses, and summaries become their own sections
  * that include all following lines until the next marker
  */
 function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
@@ -64,17 +65,27 @@ function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
   for (const line of lines) {
     const { type, toolName } = getLineType(line);
 
-    if (type === "tool-call" || type === "tool-result" || type === "agent-thinking" || type === "summary") {
-      // Start a new section for tool call/result/agent/summary
-      if (currentSection) {
-        sections.push(currentSection);
+    if (type === "tool" || type === "agent-response" || type === "summary") {
+      // For tool sections, continue the current section if it's already a tool section
+      // This merges tool-call and tool-result into one section
+      if (type === "tool" && currentSection?.type === "tool") {
+        currentSection.lines.push(line);
+        // Update tool name if this is a result line
+        if (!currentSection.toolName && toolName) {
+          currentSection.toolName = toolName;
+        }
+      } else {
+        // Start a new section
+        if (currentSection) {
+          sections.push(currentSection);
+        }
+        currentSection = {
+          type,
+          toolName,
+          lines: [line],
+          collapsed: false, // Will be set based on type later
+        };
       }
-      currentSection = {
-        type,
-        toolName,
-        lines: [line],
-        collapsed: false, // Will be set based on size later
-      };
     } else {
       // Normal line - add to current section or create new normal section
       if (!currentSection) {
@@ -100,10 +111,13 @@ function groupLogsIntoSections(lines: LogLine[]): LogSection[] {
     sections.push(currentSection);
   }
 
-  // Set default collapsed state: collapse tool results > 50 lines
+  // Set default collapsed state:
+  // - Tools: auto-collapse (true)
+  // - Agent responses: auto-expand (false)
+  // - Summary: auto-expand (false)
   return sections.map((section) => ({
     ...section,
-    collapsed: section.type === "tool-result" && section.lines.length > 50,
+    collapsed: section.type === "tool",
   }));
 }
 
@@ -216,18 +230,14 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
   let bgClass: string;
 
   switch (type) {
-    case "tool-call":
+    case "tool":
       icon = "🔧";
-      label = "Tool call";
+      label = "Tool";
       bgClass = "bg-accent/10";
       break;
-    case "tool-result":
-      icon = "📋";
-      label = "Tool result";
-      bgClass = "bg-muted/20";
-      break;
-    case "agent-thinking":
-      icon = "🤖";
+    case "agent-response":
+      // No emoji for agent response, just the label
+      icon = "";
       label = "Agent response";
       bgClass = "bg-blue-500/10";
       break;
@@ -261,7 +271,7 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
           <ChevronDown className="h-3 w-3 flex-shrink-0" />
         )}
         <span className="flex-shrink-0">
-          {icon} {label}
+          {icon && `${icon} `}{label}
           {toolName ? `: ${toolName}` : ""}
         </span>
         <span className="text-muted-foreground">
@@ -358,7 +368,7 @@ export function LogViewer({
 
   // Check if there are any collapsible sections
   const hasCollapsibleSections = sections.some(
-    (s) => s.type === "tool-call" || s.type === "tool-result"
+    (s) => s.type === "tool" || s.type === "agent-response" || s.type === "summary"
   );
 
   return (
