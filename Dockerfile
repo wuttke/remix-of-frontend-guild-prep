@@ -1,6 +1,6 @@
 # Multi-stage build for TanStack Start SSR application
 # Stage 1: Build the production app
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
@@ -23,7 +23,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production runtime
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
