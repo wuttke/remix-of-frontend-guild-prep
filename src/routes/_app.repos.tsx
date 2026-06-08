@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { NewConversationDialog } from "@/components/pdg/NewConversationDialog";
 import { pdg } from "@/lib/pdg/client";
 import type { Repo, WorktreeInfo } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
