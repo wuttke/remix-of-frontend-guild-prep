@@ -12,6 +12,10 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Force-enable nitro with a Node target so self-hosted builds (docker, VPS) produce
+  // a standalone Node HTTP server at .output/server/index.mjs. Inside a Lovable
+  // sandbox the wrapper hard-pins Cloudflare regardless of this option.
+  nitro: { preset: "node-server" },
   vite: {
     server: {
       allowedHosts: [

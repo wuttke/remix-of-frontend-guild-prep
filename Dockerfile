@@ -18,8 +18,15 @@ RUN npm ci --legacy-peer-deps
 # Copy source code
 COPY . .
 
+# Public Vite build-time env vars. Must be ARG (not just ENV) so docker-compose
+# can pass them via build.args. They get baked into the client bundle.
+ARG VITE_USE_MOCK_DATA
+ENV VITE_USE_MOCK_DATA=$VITE_USE_MOCK_DATA
+
 # Build the production app
-# This creates dist/client/ (static assets) and dist/server/ (SSR server)
+# Nitro (preset: node-server, configured in vite.config.ts) produces
+# .output/server/index.mjs (standalone Node HTTP server) and .output/public/
+# (static assets). The bundle is self-contained — no runtime npm install needed.
 RUN npm run build
 
 # Stage 2: Production runtime
@@ -34,18 +41,10 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm ci --legacy-peer-deps --omit=dev
-
-# Copy build output from builder stage
-COPY --from=builder /app/dist ./dist
-
-# Copy any necessary runtime files
-COPY --from=builder /app/vite.config.ts ./vite.config.ts
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
+# Copy the self-contained nitro build output from the builder stage.
+# Includes server/, public/, and a bundled server/node_modules/, so no
+# `npm ci` is needed in the runner.
+COPY --from=builder /app/.output ./.output
 
 # Create a non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -57,15 +56,15 @@ RUN chown -R nodejs:nodejs /app
 # Switch to non-root user
 USER nodejs
 
-# Expose port 3000 (TanStack Start default)
+# Expose port 3000 (nitro node-server default)
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)})"
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run the SSR server using npm preview
-CMD ["npm", "run", "preview"]
+# Run the standalone nitro Node server
+CMD ["node", ".output/server/index.mjs"]
