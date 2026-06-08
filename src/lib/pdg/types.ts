@@ -10,6 +10,7 @@ export interface Repo {
   id: string;
   name: string;
   path: string;
+  inactive?: boolean;
 }
 
 export interface RepoCreate {

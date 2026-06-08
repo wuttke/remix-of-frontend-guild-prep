@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare } from "lucide-react";
 import { EmptyState } from "@/components/pdg/EmptyState";
@@ -37,6 +37,25 @@ function ConversationsPage() {
     }
     return Array.from(map.entries());
   }, [conv.data]);
+
+  // Check if there are any non-terminal jobs in the conversation list
+  const hasNonTerminalJobs = useMemo(() => {
+    return (conv.data?.items ?? []).some((c) => {
+      const status = c.last_turn_status;
+      return status === "queued" || status === "running";
+    });
+  }, [conv.data]);
+
+  // Poll every 5 seconds if there are non-terminal jobs
+  useEffect(() => {
+    if (!hasNonTerminalJobs) return;
+
+    const interval = setInterval(() => {
+      conv.refetch();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [hasNonTerminalJobs, conv]);
 
   return (
     <div className="space-y-4">
