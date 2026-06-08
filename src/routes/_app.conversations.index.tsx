@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { MessageSquare } from "lucide-react";
 import { EmptyState } from "@/components/pdg/EmptyState";
 import { NewConversationDialog } from "@/components/pdg/NewConversationDialog";
+import { StatusBadge } from "@/components/pdg/StatusBadge";
 import { pdg } from "@/lib/pdg/client";
 import type { ConversationInfo } from "@/lib/pdg/types";
 
@@ -91,8 +92,13 @@ function ConversationRow({ conversation }: { conversation: ConversationInfo }) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="truncate font-medium">
-              {conversation.title ?? "Untitled"}
+            <div className="flex items-center gap-2">
+              <div className="truncate font-medium">
+                {conversation.title ?? "Untitled"}
+              </div>
+              {conversation.last_turn_status ? (
+                <StatusBadge status={conversation.last_turn_status} />
+              ) : null}
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               {conversation.turns.length} turn{conversation.turns.length === 1 ? "" : "s"}

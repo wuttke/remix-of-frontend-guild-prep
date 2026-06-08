@@ -92,6 +92,7 @@ export const mockConversations: ConversationInfo[] = [
     created_at: iso(-1000 * 60 * 60 * 26),
     updated_at: iso(-1000 * 60 * 8),
     turns: ["job-001", "job-002", "job-003"],
+    last_turn_status: "running",
   },
   {
     id: "conv-002",
@@ -106,6 +107,7 @@ export const mockConversations: ConversationInfo[] = [
     created_at: iso(-1000 * 60 * 60 * 50),
     updated_at: iso(-1000 * 60 * 60 * 2),
     turns: ["job-004", "job-005"],
+    last_turn_status: "failed",
   },
   {
     id: "conv-003",
@@ -119,6 +121,7 @@ export const mockConversations: ConversationInfo[] = [
     created_at: iso(-1000 * 60 * 60 * 5),
     updated_at: iso(-1000 * 60 * 60 * 5),
     turns: ["job-006"],
+    last_turn_status: "queued",
   },
   {
     id: "conv-004",
@@ -132,6 +135,7 @@ export const mockConversations: ConversationInfo[] = [
     created_at: iso(-1000 * 60 * 60 * 96),
     updated_at: iso(-1000 * 60 * 60 * 80),
     turns: ["job-007"],
+    last_turn_status: "finished",
   },
 ];
 

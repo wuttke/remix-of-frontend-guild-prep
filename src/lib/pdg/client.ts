@@ -308,6 +308,7 @@ function makeMockClient(): PdgClient {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         turns: [],
+        last_turn_status: null,
       };
       conversations.unshift(conv);
       return clone(conv);

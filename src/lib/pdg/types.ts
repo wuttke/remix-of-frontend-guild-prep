@@ -98,6 +98,7 @@ export interface ConversationInfo {
   created_at: string;
   updated_at: string;
   turns: string[];
+  last_turn_status: JobStatus | null;
 }
 
 export interface PaginatedResponse<T> {
