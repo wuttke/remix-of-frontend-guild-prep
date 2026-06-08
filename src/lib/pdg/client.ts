@@ -33,6 +33,8 @@ import type {
   LogLine,
   PaginatedResponse,
   Repo,
+  RepoClone,
+  RepoCreate,
   WorktreeCreate,
   WorktreeCreateParams,
   WorktreeCreated,
@@ -44,6 +46,9 @@ export type Unsubscribe = () => void;
 
 export interface PdgClient {
   listRepos(): Promise<Repo[]>;
+  createRepo(body: RepoCreate): Promise<Repo>;
+  cloneRepo(body: RepoClone): Promise<Repo>;
+  deleteRepo(repoId: string): Promise<void>;
 
   listWorktrees(repoId: string): Promise<WorktreeInfo[]>;
   createWorktree(
@@ -118,6 +123,50 @@ function makeMockClient(): PdgClient {
     async listRepos() {
       await delay();
       return clone(repos);
+    },
+
+    async createRepo(body) {
+      await delay(200);
+      // Check if repo with same ID already exists
+      if (repos.find((r) => r.id === body.id)) {
+        throw new Error(`Repository with ID '${body.id}' already exists`);
+      }
+      const repo: Repo = { ...body, inactive: false };
+      repos.push(repo);
+      return clone(repo);
+    },
+
+    async cloneRepo(body) {
+      await delay(800);
+      // Derive name and ID similar to backend
+      const name = body.name ?? body.url.split("/").pop()?.replace(".git", "") ?? "repo";
+      const id = body.id ?? name;
+
+      // Check if repo with same ID already exists
+      if (repos.find((r) => r.id === id)) {
+        throw new Error(`Repository with ID '${id}' already exists`);
+      }
+
+      const repo: Repo = {
+        id,
+        name,
+        path: `${body.parent_path}/${name}`,
+        inactive: false,
+      };
+      repos.push(repo);
+      return clone(repo);
+    },
+
+    async deleteRepo(repoId) {
+      await delay();
+      const index = repos.findIndex((r) => r.id === repoId);
+      if (index === -1) {
+        throw new Error(`Repository '${repoId}' not found`);
+      }
+      // Soft delete - mark as inactive instead of removing
+      repos[index].inactive = true;
+      // Remove from list (simulating the backend filtering out inactive repos)
+      repos.splice(index, 1);
     },
 
     async listWorktrees(repoId) {
@@ -345,6 +394,12 @@ function makeHttpClient(baseUrl: string): PdgClient {
 
   return {
     listRepos: () => json(url("/repos")),
+    createRepo: (body) =>
+      json(url("/repos"), { method: "POST", body: JSON.stringify(body) }),
+    cloneRepo: (body) =>
+      json(url("/repos/clone"), { method: "POST", body: JSON.stringify(body) }),
+    deleteRepo: (repoId) =>
+      json(url(`/repos/${repoId}`), { method: "DELETE" }),
 
     listWorktrees: (repoId) => json(url(`/repos/${repoId}/worktrees`)),
     createWorktree: (repoId, body, params) =>

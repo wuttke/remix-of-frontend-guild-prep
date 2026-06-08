@@ -5,6 +5,7 @@ import {
   ChevronDown,
   FolderGit2,
   GitBranch,
+  GitFork,
   MessageSquare,
   Plus,
   Trash2,
@@ -65,6 +66,10 @@ function ReposPage() {
             Tap a repo to manage its worktrees.
           </p>
         </div>
+        <div className="flex gap-2">
+          <CreateRepoDialog />
+          <CloneRepoDialog />
+        </div>
       </header>
 
       {reposQuery.isLoading ? (
@@ -102,23 +107,24 @@ function RepoCard({
 
   return (
     <li className="overflow-hidden rounded-xl border border-border/60 bg-card">
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
-      >
-        <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-muted/60 text-muted-foreground">
+      <div className="flex w-full items-center justify-between gap-3 px-4 py-3">
+        <button
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left transition-colors hover:opacity-70"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted/60 text-muted-foreground">
             <FolderGit2 className="h-4 w-4" />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="font-medium">{repo.name}</div>
-            <div className="font-mono text-[11px] text-muted-foreground">{repo.path}</div>
+            <div className="truncate font-mono text-[11px] text-muted-foreground">{repo.path}</div>
           </div>
-        </div>
-        <ChevronDown
-          className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")}
-        />
-      </button>
+          <ChevronDown
+            className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
+          />
+        </button>
+        <DeleteRepoButton repo={repo} />
+      </div>
 
       {expanded ? (
         <div className="border-t border-border/60 bg-background/40 px-3 py-3">
@@ -299,6 +305,239 @@ function CreateWorktreeDialog({ repoId }: { repoId: string }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CreateRepoDialog() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [id, setId] = useState("");
+  const [name, setName] = useState("");
+  const [path, setPath] = useState("");
+
+  const create = useMutation({
+    mutationFn: () => pdg.createRepo({ id, name, path }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["repos"] });
+      toast.success(`Registered ${data.name}`);
+      setOpen(false);
+      setId("");
+      setName("");
+      setPath("");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const idValid = /^[A-Za-z0-9_-]+$/.test(id);
+  const canSubmit = idValid && name.trim() && path.trim();
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary" className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" /> Register
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Register existing repository</DialogTitle>
+          <DialogDescription>
+            Register a repository that already exists on disk. The path must be a valid git repository.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="repo-id">ID</Label>
+            <Input
+              id="repo-id"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              placeholder="my-project"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Letters, numbers, hyphens, and underscores only
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="repo-name">Name</Label>
+            <Input
+              id="repo-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Project"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="repo-path">Path</Label>
+            <Input
+              id="repo-path"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              placeholder="/home/user/repos/my-project"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Absolute path to the git repository on disk
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => create.mutate()} disabled={!canSubmit || create.isPending}>
+            {create.isPending ? "Registering…" : "Register"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CloneRepoDialog() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [parentPath, setParentPath] = useState("");
+  const [id, setId] = useState("");
+  const [name, setName] = useState("");
+
+  const clone = useMutation({
+    mutationFn: () => pdg.cloneRepo({ url, parent_path: parentPath, id: id || undefined, name: name || undefined }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["repos"] });
+      toast.success(`Cloned ${data.name}`);
+      setOpen(false);
+      setUrl("");
+      setParentPath("");
+      setId("");
+      setName("");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const idValid = !id || /^[A-Za-z0-9_-]+$/.test(id);
+  const canSubmit = url.trim() && parentPath.trim() && idValid;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary" className="gap-1.5">
+          <GitFork className="h-3.5 w-3.5" /> Clone
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Clone repository</DialogTitle>
+          <DialogDescription>
+            Clone a repository from a URL. The ID and name will be derived from the URL if not specified.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="clone-url">Repository URL</Label>
+            <Input
+              id="clone-url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://github.com/user/repo.git"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="clone-parent-path">Parent Directory</Label>
+            <Input
+              id="clone-parent-path"
+              value={parentPath}
+              onChange={(e) => setParentPath(e.target.value)}
+              placeholder="/home/user/repos"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Repository will be cloned into a subdirectory here
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="clone-id">ID (optional)</Label>
+            <Input
+              id="clone-id"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              placeholder="Auto-derived from URL"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="clone-name">Name (optional)</Label>
+            <Input
+              id="clone-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Auto-derived from URL"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => clone.mutate()} disabled={!canSubmit || clone.isPending}>
+            {clone.isPending ? "Cloning…" : "Clone"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteRepoButton({ repo }: { repo: Repo }) {
+  const qc = useQueryClient();
+
+  const deleteRepo = useMutation({
+    mutationFn: () => pdg.deleteRepo(repo.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["repos"] });
+      toast.success(`Deactivated ${repo.name}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Deactivate repository?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will deactivate <span className="font-semibold">{repo.name}</span> and hide it from
+            listings. The repository files on disk will NOT be deleted. This action can be reversed
+            by re-registering the repository.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => deleteRepo.mutate()}
+            disabled={deleteRepo.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleteRepo.isPending ? "Deactivating…" : "Deactivate"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

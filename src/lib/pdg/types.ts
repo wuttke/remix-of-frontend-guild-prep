@@ -12,6 +12,19 @@ export interface Repo {
   path: string;
 }
 
+export interface RepoCreate {
+  id: string;
+  name: string;
+  path: string;
+}
+
+export interface RepoClone {
+  url: string;
+  parent_path: string;
+  id?: string;
+  name?: string;
+}
+
 export interface WorktreeInfo {
   name: string | null;
   is_primary: boolean;
