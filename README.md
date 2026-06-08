@@ -20,27 +20,26 @@ Der Dev-Server läuft auf `http://localhost:8080`
 
 ### Mock-Modus vs. Live-Modus
 
-Das Frontend kann in zwei Modi laufen:
+Das Frontend kann in zwei Modi laufen. Die Auswahl passiert über die Env-Variable
+`VITE_USE_MOCK_DATA`. **Default ist Mock** — nur wenn der Wert exakt `"false"`
+ist, wird der echte Backend-Client benutzt.
 
-#### Mock-Modus (Standard)
-- Nutzt In-Memory Mock-Daten
-- Kein Backend benötigt
-- Ideal für UI-Entwicklung
+#### Mock-Modus (Default, Lovable-Preview)
+- Keine `.env`-Datei nötig
+- Nutzt In-Memory Mock-Daten aus `src/lib/pdg/mock-data.ts`
+- So läuft auch die Lovable-Preview, weil dort keine `.env`/`.env.local` existiert
 
-```bash
-# .env
-VITE_USE_MOCK_DATA=true
-```
-
-#### Live-Modus
-- Verbindet sich mit dem echten Backend über `/api`
-- Backend muss auf `localhost:8000` laufen
-- Vite proxied `/api/*` → `http://localhost:8000/*`
+#### Live-Modus (lokal, gegen echtes Backend)
+Lege einmalig eine **`.env.local`** an (ist in `.gitignore`, wird nie nach
+Lovable übertragen):
 
 ```bash
-# .env
+# .env.local
 VITE_USE_MOCK_DATA=false
 ```
+
+Vite proxied dann `/api/*` → `http://localhost:8000/*` (siehe `vite.config.ts`).
+
 
 ### Backend starten (für Live-Modus)
 
