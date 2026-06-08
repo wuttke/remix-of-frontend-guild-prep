@@ -18,13 +18,12 @@ export function LogViewer({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setLines([]);
-
     // For completed jobs, fetch logs once instead of streaming
     const isCompleted = jobStatus === "finished" || jobStatus === "failed" || jobStatus === "cancelled";
 
     if (isCompleted) {
       // Fetch all logs at once for completed jobs
+      // Don't clear existing lines to avoid flicker when transitioning from streaming to completed
       pdg.getJobLog(jobId).then((jobLog) => {
         setLines(jobLog.log);
       }).catch((err) => {
@@ -34,6 +33,8 @@ export function LogViewer({
     }
 
     // For active jobs (queued/running), stream events
+    // Clear lines when starting fresh stream
+    setLines([]);
     const unsubscribe = pdg.streamJobEvents(jobId, {
       onLog: (line) => setLines((prev) => [...prev, line]),
       onStatus: (event) => onStatus?.(event),
