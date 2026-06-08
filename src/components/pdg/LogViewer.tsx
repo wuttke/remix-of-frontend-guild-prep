@@ -140,15 +140,17 @@ function applyMarkdownToHtml(htmlString: string): string {
   // Handle bold: **text** -> <strong>text</strong>
   result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
-  // Handle headings: # Text -> styled span with colored/hidden hashtags
-  result = result.replace(/^(#{1,6})\s+(.+)$/gm, (_, hashes, content) => {
+  // Handle headings: # Text -> styled span with colored hashtags
+  // Match headings that might be wrapped in ANSI spans
+  // Pattern: matches (#{1,6}) followed by space and content, anywhere in the string
+  result = result.replace(/(^|>)(#{1,6})\s+([^<\n]+)/gm, (match, prefix, hashes, content) => {
     const level = hashes.length;
     // Use bold + underline instead of size changes
     const fontWeight = level <= 2 ? 700 : level <= 4 ? 600 : 500;
     const textDecoration = level === 1 ? 'underline' : 'none';
     const hashColor = 'rgba(156, 163, 175, 0.4)'; // muted color for hashtags
 
-    return `<span style="display: block; font-weight: ${fontWeight}; text-decoration: ${textDecoration};"><span style="color: ${hashColor};">${hashes}</span> ${content}</span>`;
+    return `${prefix}<span style="display: block; font-weight: ${fontWeight}; text-decoration: ${textDecoration};"><span style="color: ${hashColor};">${hashes}</span> ${content}</span>`;
   });
 
   return result;
@@ -259,6 +261,10 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
     const firstLine = lines[0].line.trim();
     if (AGENT_RESPONSE_PATTERN.test(firstLine)) {
       contentLines = lines.slice(1);
+    }
+    // Remove trailing empty line if present (to avoid double newlines)
+    if (contentLines.length > 0 && contentLines[contentLines.length - 1].line.trim() === "") {
+      contentLines = contentLines.slice(0, -1);
     }
   } else if (type === "summary" && lines.length > 0) {
     const firstLine = lines[0].line.trim();
