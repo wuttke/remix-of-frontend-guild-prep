@@ -52,17 +52,17 @@ ps: ## Show running containers
 	docker ps -a | grep $(CONTAINER_NAME) || echo "Container not found"
 
 # Docker Compose commands
-compose-up: ## Start all services with docker-compose
-	docker-compose up -d
+compose-up: ## Start all services with docker compose
+	docker compose up -d
 
-compose-down: ## Stop all services with docker-compose
-	docker-compose down
+compose-down: ## Stop all services with docker compose
+	docker compose down
 
-compose-logs: ## Show docker-compose logs
-	docker-compose logs -f
+compose-logs: ## Show docker compose logs
+	docker compose logs -f
 
 compose-rebuild: ## Rebuild and restart all services
-	docker-compose up -d --build
+	docker compose up -d --build
 
-compose-ps: ## Show docker-compose services status
-	docker-compose ps
+compose-ps: ## Show docker compose services status
+	docker compose ps
