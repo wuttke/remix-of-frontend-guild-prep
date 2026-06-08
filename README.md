@@ -2,6 +2,8 @@
 
 Frontend für die Pocket Dev Guild - ein Tool zum Verwalten von Git Worktrees und Augment Agent Sessions.
 
+**📖 [Deployment Guide](DEPLOYMENT.md)** - Setup für Development & Production
+
 ## Entwicklung
 
 ### Installation
@@ -50,13 +52,17 @@ cd ~/repositories/pocket-dev-guild
 uvicorn main:app --reload --port 8000
 ```
 
-## Build
+## Build & Deployment
 
 ```bash
-npm run build
+npm run build        # Production build
+npm run preview      # Test production build locally
 ```
 
-Build-Output: `dist/`
+Build-Output: `dist/client/` (assets) + `dist/server/` (SSR server)
+
+⚠️ **TanStack Start ist SSR** - nicht als statische Dateien deploybar!
+Siehe **[DEPLOYMENT.md](DEPLOYMENT.md)** für Production-Setup (nginx, CORS, etc.)
 
 ## Technologie-Stack
 
