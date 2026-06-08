@@ -2,10 +2,7 @@ import { Ban, CheckCircle2, CircleDashed, Loader2, XCircle } from "lucide-react"
 import type { JobStatus } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
 
-const config: Record<
-  JobStatus,
-  { label: string; icon: typeof CheckCircle2; tone: string }
-> = {
+const config: Record<JobStatus, { label: string; icon: typeof CheckCircle2; tone: string }> = {
   queued: {
     label: "Queued",
     icon: CircleDashed,

@@ -29,17 +29,14 @@ function JobsPage() {
   const [status, setStatus] = useState<JobStatus | "all">("all");
   const jobs = useQuery({
     queryKey: ["jobs", { status }],
-    queryFn: () =>
-      pdg.listJobs({ status: status === "all" ? undefined : status, limit: 100 }),
+    queryFn: () => pdg.listJobs({ status: status === "all" ? undefined : status, limit: 100 }),
   });
 
   return (
     <div className="space-y-4">
       <header>
         <h1 className="font-display text-2xl font-semibold">Jobs</h1>
-        <p className="text-sm text-muted-foreground">
-          Every job started by a conversation turn.
-        </p>
+        <p className="text-sm text-muted-foreground">Every job started by a conversation turn.</p>
       </header>
 
       <div className="flex items-center gap-2">
@@ -60,7 +57,10 @@ function JobsPage() {
       {jobs.isLoading ? (
         <ul className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <li key={i} className="h-20 animate-pulse rounded-xl border border-border/40 bg-card/40" />
+            <li
+              key={i}
+              className="h-20 animate-pulse rounded-xl border border-border/40 bg-card/40"
+            />
           ))}
         </ul>
       ) : jobs.data?.items.length === 0 ? (

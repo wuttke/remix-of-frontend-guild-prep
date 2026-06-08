@@ -68,9 +68,7 @@ function ConversationDetail() {
   const orderedTurns = [...(turns.data?.items ?? [])].sort((a, b) =>
     a.created_at < b.created_at ? -1 : 1,
   );
-  const hasRunningTurn = orderedTurns.some(
-    (j) => j.status === "queued" || j.status === "running",
-  );
+  const hasRunningTurn = orderedTurns.some((j) => j.status === "queued" || j.status === "running");
 
   return (
     <div className="space-y-4">
@@ -83,25 +81,25 @@ function ConversationDetail() {
 
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-        <h1 className="font-display text-2xl font-semibold">
-          {c.title ?? "Untitled"}
-          {c.archived ? (
-            <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
-              (archived)
-            </span>
-          ) : null}
-        </h1>
-        <div className="mt-1 text-xs text-muted-foreground">
-          <span className="font-mono">{c.repo_id}</span>
-          {c.worktree ? (
-            <>
-              {" · "}
-              <span className="font-mono">{c.worktree}</span>
-            </>
-          ) : null}
-          {" · updated "}
-          {formatDistanceToNow(new Date(c.updated_at), { addSuffix: true })}
-        </div>
+          <h1 className="font-display text-2xl font-semibold">
+            {c.title ?? "Untitled"}
+            {c.archived ? (
+              <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
+                (archived)
+              </span>
+            ) : null}
+          </h1>
+          <div className="mt-1 text-xs text-muted-foreground">
+            <span className="font-mono">{c.repo_id}</span>
+            {c.worktree ? (
+              <>
+                {" · "}
+                <span className="font-mono">{c.worktree}</span>
+              </>
+            ) : null}
+            {" · updated "}
+            {formatDistanceToNow(new Date(c.updated_at), { addSuffix: true })}
+          </div>
         </div>
         {!c.archived ? (
           <Button
@@ -163,7 +161,11 @@ function ConversationDetail() {
         <Textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={orderedTurns.length === 0 ? "What do you want to do today?" : "Send another turn to the agent…"}
+          placeholder={
+            orderedTurns.length === 0
+              ? "What do you want to do today?"
+              : "Send another turn to the agent…"
+          }
           rows={3}
           className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         />
@@ -175,11 +177,7 @@ function ConversationDetail() {
             onClick={() => sendTurn.mutate()}
           >
             <Send className="h-4 w-4" />
-            {sendTurn.isPending
-              ? "Sending…"
-              : hasRunningTurn
-                ? "Turn in progress…"
-                : "Send"}
+            {sendTurn.isPending ? "Sending…" : hasRunningTurn ? "Turn in progress…" : "Send"}
           </Button>
         </div>
       </section>

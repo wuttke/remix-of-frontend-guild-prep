@@ -18,11 +18,7 @@ export default defineConfig({
   nitro: { preset: "node-server" },
   vite: {
     server: {
-      allowedHosts: [
-        "localhost",
-        ".localhost",
-        "meona-exe-03-wsl",
-      ],
+      allowedHosts: ["localhost", ".localhost", "meona-exe-03-wsl"],
       proxy: {
         "/api": {
           target: "http://localhost:8000",

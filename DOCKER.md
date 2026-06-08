@@ -34,6 +34,7 @@ docker-compose down
 The Dockerfile uses a **multi-stage build** approach:
 
 ### Stage 1: Builder
+
 - Based on `node:20-alpine`
 - Installs build dependencies (Python, make, g++ for native modules)
 - Copies source code
@@ -41,6 +42,7 @@ The Dockerfile uses a **multi-stage build** approach:
 - Outputs: `dist/client/` (static assets) and `dist/server/` (SSR server)
 
 ### Stage 2: Runner
+
 - Based on `node:20-alpine`
 - Installs only production dependencies
 - Copies built assets from builder stage
@@ -60,7 +62,7 @@ docker run -p 3000:3000 \
   pocket-dev-guild-frontend
 ```
 
-**Important:** Only `VITE_*` prefixed variables are accessible in the client. 
+**Important:** Only `VITE_*` prefixed variables are accessible in the client.
 Server-only secrets should NOT use the `VITE_` prefix.
 
 ## Production Deployment
@@ -80,6 +82,7 @@ docker-compose up -d
 ```
 
 This will:
+
 - Run the frontend SSR server on port 3000 (internal)
 - Run nginx on port 80 (external)
 - nginx proxies requests to the frontend
@@ -102,6 +105,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ```
 
 Check health status:
+
 ```bash
 docker ps
 # Look for (healthy) or (unhealthy) in STATUS column
@@ -112,6 +116,7 @@ docker ps
 ### Container won't start
 
 Check logs:
+
 ```bash
 docker logs pocket-dev-guild-frontend
 # or
@@ -121,6 +126,7 @@ docker-compose logs frontend
 ### Port already in use
 
 Change the port mapping:
+
 ```bash
 docker run -p 8080:3000 pocket-dev-guild-frontend
 # or update docker-compose.yml ports: ["8080:3000"]
@@ -129,6 +135,7 @@ docker run -p 8080:3000 pocket-dev-guild-frontend
 ### Build fails
 
 Clear Docker build cache:
+
 ```bash
 docker build --no-cache -t pocket-dev-guild-frontend .
 ```
@@ -136,6 +143,7 @@ docker build --no-cache -t pocket-dev-guild-frontend .
 ### File changes not reflected
 
 Rebuild the image:
+
 ```bash
 docker-compose up -d --build
 ```
@@ -145,6 +153,7 @@ docker-compose up -d --build
 ### Reduce image size
 
 The multi-stage build already keeps the image small by:
+
 - Using Alpine Linux (minimal base image)
 - Installing only production dependencies in final stage
 - Using `.dockerignore` to exclude unnecessary files
@@ -152,6 +161,7 @@ The multi-stage build already keeps the image small by:
 ### Build cache optimization
 
 Layers are ordered to maximize cache hits:
+
 1. System dependencies (rarely change)
 2. Package files (change occasionally)
 3. Source code (changes frequently)
@@ -159,6 +169,7 @@ Layers are ordered to maximize cache hits:
 ## Security Best Practices
 
 ✅ **Implemented:**
+
 - Non-root user (nodejs:1001)
 - Minimal base image (Alpine)
 - Production dependencies only
@@ -166,6 +177,7 @@ Layers are ordered to maximize cache hits:
 - Health checks
 
 🔒 **Additional recommendations:**
+
 - Use Docker secrets for sensitive data
 - Scan images for vulnerabilities: `docker scan pocket-dev-guild-frontend`
 - Keep base images updated

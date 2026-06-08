@@ -48,12 +48,7 @@ export interface WorktreeCreated {
   path: string;
 }
 
-export type JobStatus =
-  | "queued"
-  | "running"
-  | "finished"
-  | "failed"
-  | "cancelled";
+export type JobStatus = "queued" | "running" | "finished" | "failed" | "cancelled";
 export type LogStream = "stdout" | "stderr";
 
 export interface JobInfo {
@@ -151,4 +146,9 @@ export interface ConversationTurnCreated {
 
 export interface WorktreeRemoved {
   removed: string;
+}
+
+export interface WorktreeStatus {
+  is_clean: boolean;
+  messages: string[];
 }

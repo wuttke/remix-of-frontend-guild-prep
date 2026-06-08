@@ -63,9 +63,7 @@ function ReposPage() {
       <header className="flex items-end justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold">Repositories</h1>
-          <p className="text-sm text-muted-foreground">
-            Tap a repo to manage its worktrees.
-          </p>
+          <p className="text-sm text-muted-foreground">Tap a repo to manage its worktrees.</p>
         </div>
         <div className="flex gap-2">
           <CreateRepoDialog />
@@ -121,7 +119,10 @@ function RepoCard({
             <div className="truncate font-mono text-[11px] text-muted-foreground">{repo.path}</div>
           </div>
           <ChevronDown
-            className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              expanded && "rotate-180",
+            )}
           />
         </button>
         <DeleteRepoButton repo={repo} />
@@ -153,12 +154,28 @@ function RepoCard({
 function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeInfo }) {
   const qc = useQueryClient();
   const [archiveConversations, setArchiveConversations] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [forceDelete, setForceDelete] = useState(false);
+
+  const statusQuery = useQuery({
+    queryKey: ["worktree-status", repoId, worktree.name],
+    queryFn: () => pdg.getWorktreeStatus(repoId, worktree.name!),
+    enabled: dialogOpen && worktree.name != null,
+  });
+
   const deleteMutation = useMutation({
-    mutationFn: () => pdg.deleteWorktree(repoId, worktree.name!, archiveConversations ? { archive_conversations: true } : undefined),
+    mutationFn: () =>
+      pdg.deleteWorktree(
+        repoId,
+        worktree.name!,
+        archiveConversations ? { archive_conversations: true } : undefined,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["worktrees", repoId] });
       toast.success(`Removed ${worktree.name}`);
       setArchiveConversations(false); // Reset for next use
+      setDialogOpen(false);
+      setForceDelete(false);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -199,7 +216,7 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
           }
         />
         {!worktree.is_primary && worktree.name ? (
-          <AlertDialog>
+          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button
                 variant="ghost"
@@ -215,13 +232,36 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
               <AlertDialogHeader>
                 <AlertDialogTitle>Remove worktree?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will delete the worktree{" "}
-                  <span className="font-mono">{worktree.name}</span> (branch{" "}
-                  <span className="font-mono">{worktree.branch}</span>). Uncommitted
-                  changes will be lost.
+                  This will delete the worktree <span className="font-mono">{worktree.name}</span>{" "}
+                  (branch <span className="font-mono">{worktree.branch}</span>).
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <div className="flex items-center space-x-2 py-4">
+
+              {statusQuery.isLoading ? (
+                <div className="py-4 text-sm text-muted-foreground">
+                  Checking worktree status...
+                </div>
+              ) : statusQuery.data && !statusQuery.data.is_clean && !forceDelete ? (
+                <div className="space-y-3 py-4">
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-500">
+                      <span className="text-lg">⚠️</span>
+                      Worktree has unsaved changes
+                    </div>
+                    <ul className="ml-7 space-y-1 text-sm text-amber-700 dark:text-amber-400">
+                      {statusQuery.data.messages.map((msg, i) => (
+                        <li key={i}>• {msg}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : statusQuery.data?.is_clean ? (
+                <div className="py-2 text-sm text-muted-foreground">
+                  ✓ Worktree is clean (no uncommitted changes, untracked files, or unpushed commits)
+                </div>
+              ) : null}
+
+              <div className="flex items-center space-x-2 py-2">
                 <Checkbox
                   id="archive-conversations"
                   checked={archiveConversations}
@@ -234,14 +274,32 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
                   Archive conversations with this worktree
                 </Label>
               </div>
+
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setArchiveConversations(false)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => deleteMutation.mutate()}
-                  className="bg-[color:var(--status-failed)] text-white hover:bg-[color:var(--status-failed)]/90"
+                <AlertDialogCancel
+                  onClick={() => {
+                    setArchiveConversations(false);
+                    setForceDelete(false);
+                  }}
                 >
-                  Remove
-                </AlertDialogAction>
+                  Cancel
+                </AlertDialogCancel>
+                {statusQuery.data && !statusQuery.data.is_clean && !forceDelete ? (
+                  <AlertDialogAction
+                    onClick={() => setForceDelete(true)}
+                    className="bg-amber-600 text-white hover:bg-amber-700"
+                  >
+                    Delete Anyway
+                  </AlertDialogAction>
+                ) : (
+                  <AlertDialogAction
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={statusQuery.isLoading || deleteMutation.isPending}
+                    className="bg-[color:var(--status-failed)] text-white hover:bg-[color:var(--status-failed)]/90"
+                  >
+                    {deleteMutation.isPending ? "Removing..." : "Remove"}
+                  </AlertDialogAction>
+                )}
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -282,7 +340,8 @@ function CreateWorktreeDialog({ repoId }: { repoId: string }) {
         <DialogHeader>
           <DialogTitle>Create worktree</DialogTitle>
           <DialogDescription>
-            Pattern: <span className="font-mono">type/name</span> — e.g. <span className="font-mono">feature/auth</span>.
+            Pattern: <span className="font-mono">type/name</span> — e.g.{" "}
+            <span className="font-mono">feature/auth</span>.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -312,10 +371,7 @@ function CreateWorktreeDialog({ repoId }: { repoId: string }) {
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={() => create.mutate()}
-            disabled={!valid || create.isPending}
-          >
+          <Button onClick={() => create.mutate()} disabled={!valid || create.isPending}>
             {create.isPending ? "Creating…" : "Create"}
           </Button>
         </DialogFooter>
@@ -358,7 +414,8 @@ function CreateRepoDialog() {
         <DialogHeader>
           <DialogTitle>Register existing repository</DialogTitle>
           <DialogDescription>
-            Register a repository that already exists on disk. The path must be a valid git repository.
+            Register a repository that already exists on disk. The path must be a valid git
+            repository.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -421,7 +478,8 @@ function CloneRepoDialog() {
   const [name, setName] = useState("");
 
   const clone = useMutation({
-    mutationFn: () => pdg.cloneRepo({ url, parent_path: parentPath, id: id || undefined, name: name || undefined }),
+    mutationFn: () =>
+      pdg.cloneRepo({ url, parent_path: parentPath, id: id || undefined, name: name || undefined }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["repos"] });
       toast.success(`Cloned ${data.name}`);
@@ -448,7 +506,8 @@ function CloneRepoDialog() {
         <DialogHeader>
           <DialogTitle>Clone repository</DialogTitle>
           <DialogDescription>
-            Clone a repository from a URL. The ID and name will be derived from the URL if not specified.
+            Clone a repository from a URL. The ID and name will be derived from the URL if not
+            specified.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -561,10 +620,7 @@ function SkeletonList({ count }: { count: number }) {
   return (
     <ul className="space-y-2">
       {Array.from({ length: count }).map((_, i) => (
-        <li
-          key={i}
-          className="h-16 animate-pulse rounded-xl border border-border/40 bg-card/40"
-        />
+        <li key={i} className="h-16 animate-pulse rounded-xl border border-border/40 bg-card/40" />
       ))}
     </ul>
   );

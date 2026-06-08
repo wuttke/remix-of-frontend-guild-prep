@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+    - generic [ref=e2]:
+        - banner [ref=e3]:
+            - generic [ref=e4]:
+                - link "⌥ Pocket Dev Guild" [ref=e5] [cursor=pointer]:
+                    - /url: /repos
+                    - generic [ref=e6]: ⌥
+                    - generic [ref=e7]: Pocket Dev Guild
+                - generic "Connected to backend at /api" [ref=e8]: live
+        - main [ref=e9]:
+            - generic [ref=e10]:
+                - generic [ref=e11]:
+                    - generic [ref=e12]:
+                        - heading "Conversations" [level=1] [ref=e13]
+                        - paragraph [ref=e14]: Resume an agent session or start a new one.
+                    - button "New" [ref=e15] [cursor=pointer]:
+                        - img
+                        - text: New
+                - list [ref=e16]:
+                    - listitem [ref=e17]
+                    - listitem [ref=e18]
+                    - listitem [ref=e19]
+        - navigation [ref=e20]:
+            - generic [ref=e21]:
+                - link "Repos" [ref=e22] [cursor=pointer]:
+                    - /url: /repos
+                    - img [ref=e23]
+                    - text: Repos
+                - link "Chats" [ref=e28] [cursor=pointer]:
+                    - /url: /conversations
+                    - img [ref=e29]
+                    - text: Chats
+                - link "Jobs" [ref=e31] [cursor=pointer]:
+                    - /url: /jobs
+                    - img [ref=e32]
+                    - text: Jobs
+    - region "Notifications alt+T"

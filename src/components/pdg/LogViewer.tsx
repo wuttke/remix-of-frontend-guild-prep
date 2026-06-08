@@ -138,7 +138,7 @@ function applyMarkdownToHtml(htmlString: string): string {
   let result = htmlString;
 
   // Handle bold: **text** -> <strong>text</strong>
-  result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  result = result.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 
   // Handle headings: # Text -> styled span with colored hashtags
   // Match headings that might be wrapped in ANSI spans
@@ -147,8 +147,8 @@ function applyMarkdownToHtml(htmlString: string): string {
     const level = hashes.length;
     // Use bold + underline instead of size changes
     const fontWeight = level <= 2 ? 700 : level <= 4 ? 600 : 500;
-    const textDecoration = level === 1 ? 'underline' : 'none';
-    const hashColor = 'rgba(156, 163, 175, 0.4)'; // muted color for hashtags
+    const textDecoration = level === 1 ? "underline" : "none";
+    const hashColor = "rgba(156, 163, 175, 0.4)"; // muted color for hashtags
 
     return `${prefix}<span style="display: block; font-weight: ${fontWeight}; text-decoration: ${textDecoration};"><span style="color: ${hashColor};">${hashes}</span> ${content}</span>`;
   });
@@ -292,7 +292,8 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
           <ChevronDown className="h-3 w-3 flex-shrink-0" />
         )}
         <span className="flex-shrink-0">
-          {icon && `${icon} `}{label}
+          {icon && `${icon} `}
+          {label}
           {toolName ? `: ${toolName}` : ""}
         </span>
         <span className="text-muted-foreground">
@@ -329,16 +330,20 @@ export function LogViewer({
 
   useEffect(() => {
     // For completed jobs, fetch logs once instead of streaming
-    const isCompleted = jobStatus === "finished" || jobStatus === "failed" || jobStatus === "cancelled";
+    const isCompleted =
+      jobStatus === "finished" || jobStatus === "failed" || jobStatus === "cancelled";
 
     if (isCompleted) {
       // Fetch all logs at once for completed jobs
       // Don't clear existing lines to avoid flicker when transitioning from streaming to completed
-      pdg.getJobLog(jobId).then((jobLog) => {
-        setLines(jobLog.log);
-      }).catch((err) => {
-        console.error("Failed to fetch job log:", err);
-      });
+      pdg
+        .getJobLog(jobId)
+        .then((jobLog) => {
+          setLines(jobLog.log);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch job log:", err);
+        });
       return; // No cleanup needed for one-time fetch
     }
 
@@ -367,29 +372,27 @@ export function LogViewer({
   const toggleSection = (index: number) => {
     setSections((prev) =>
       prev.map((section, i) =>
-        i === index ? { ...section, collapsed: !section.collapsed } : section
-      )
+        i === index ? { ...section, collapsed: !section.collapsed } : section,
+      ),
     );
   };
 
   // Expand/collapse all tool sections
   const expandAll = () => {
-    setSections((prev) =>
-      prev.map((section) => ({ ...section, collapsed: false }))
-    );
+    setSections((prev) => prev.map((section) => ({ ...section, collapsed: false })));
   };
 
   const collapseAll = () => {
     setSections((prev) =>
       prev.map((section) =>
-        section.type === "normal" ? section : { ...section, collapsed: true }
-      )
+        section.type === "normal" ? section : { ...section, collapsed: true },
+      ),
     );
   };
 
   // Check if there are any collapsible sections
   const hasCollapsibleSections = sections.some(
-    (s) => s.type === "tool" || s.type === "agent-response" || s.type === "summary"
+    (s) => s.type === "tool" || s.type === "agent-response" || s.type === "summary",
   );
 
   return (

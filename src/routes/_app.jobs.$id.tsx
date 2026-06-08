@@ -117,9 +117,7 @@ function JobDetail() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep running</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => cancel.mutate()}>
-                    Cancel job
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={() => cancel.mutate()}>Cancel job</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

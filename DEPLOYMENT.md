@@ -12,6 +12,7 @@ Both run as **separate processes** in production. Use nginx to combine them on o
 ## Prerequisites
 
 **⚠️ Merge PR #4 first!**
+
 ```bash
 cd ../pocket-dev-guild
 gh pr merge 4  # Adds /api prefix to backend endpoints
@@ -38,12 +39,14 @@ Access at: `http://localhost:3000`
 ## Production Mode (Two-Process Setup)
 
 ### Step 1: Build Frontend
+
 ```bash
 cd ../remix-of-frontend-guild-prep
 npm run build
 ```
 
 ### Step 2: Run Both Services
+
 ```bash
 # Terminal 1: Backend
 cd ../pocket-dev-guild
@@ -59,6 +62,7 @@ npm run preview
 ### Step 3: Combine with nginx (Recommended)
 
 Create `/etc/nginx/sites-available/pocket-dev-guild`:
+
 ```nginx
 server {
     listen 80;
@@ -80,6 +84,7 @@ server {
 ```
 
 Enable and restart:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/pocket-dev-guild /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl restart nginx
@@ -92,6 +97,7 @@ Access at: `http://yourdomain.com`
 ## How It Works
 
 ### Architecture
+
 ```
 Browser → nginx (:80)
             ├─ / → Frontend SSR (:3000)
@@ -99,6 +105,7 @@ Browser → nginx (:80)
 ```
 
 ### Key Points
+
 - **Frontend**: Node.js server that renders React pages (SSR)
 - **Backend**: Python FastAPI serving `/api/*` endpoints
 - **Development**: Vite proxy auto-forwards `/api/*` to backend
@@ -115,6 +122,7 @@ For detailed production options, see `PRODUCTION_API_COMMUNICATION.md`.
 If you don't want to use nginx, enable CORS in the backend:
 
 **Edit `pocket-dev-guild/pocket_dev_guild/app.py`:**
+
 ```python
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -130,6 +138,7 @@ app.add_middleware(
 ```
 
 Then access frontend and backend on separate ports:
+
 - Frontend: `http://yourdomain.com:3000`
 - Backend: `http://yourdomain.com:8000`
 
@@ -138,6 +147,7 @@ Then access frontend and backend on separate ports:
 ## Docker Deployment
 
 Create `docker-compose.yml`:
+
 ```yaml
 services:
   nginx:
@@ -162,12 +172,12 @@ services:
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| API calls return 404 | Merge PR #4 (adds `/api` prefix to backend) |
-| CORS errors | Use nginx reverse proxy OR enable CORS in backend |
-| Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` |
-| Build errors | `rm -rf node_modules dist && npm install && npm run build` |
+| Problem              | Solution                                                   |
+| -------------------- | ---------------------------------------------------------- |
+| API calls return 404 | Merge PR #4 (adds `/api` prefix to backend)                |
+| CORS errors          | Use nginx reverse proxy OR enable CORS in backend          |
+| Port 3000 in use     | `lsof -ti:3000 \| xargs kill -9`                           |
+| Build errors         | `rm -rf node_modules dist && npm install && npm run build` |
 
 ---
 

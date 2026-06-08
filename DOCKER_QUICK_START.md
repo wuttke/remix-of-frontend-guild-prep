@@ -20,6 +20,7 @@ Access at: **http://localhost:3000**
 ## 📋 Common Commands
 
 ### Using Make
+
 ```bash
 make help              # Show all available commands
 make build             # Build Docker image
@@ -32,6 +33,7 @@ make compose-up        # Start with docker-compose
 ```
 
 ### Using Docker Directly
+
 ```bash
 # Build
 docker build -t pocket-dev-guild-frontend .
@@ -47,6 +49,7 @@ docker stop frontend && docker rm frontend
 ```
 
 ### Using Docker Compose
+
 ```bash
 # Start
 docker-compose up -d
@@ -64,6 +67,7 @@ docker-compose up -d --build
 ## 🔧 Common Issues
 
 **Port 3000 already in use?**
+
 ```bash
 # Use different port
 docker run -p 8080:3000 pocket-dev-guild-frontend
@@ -71,6 +75,7 @@ docker run -p 8080:3000 pocket-dev-guild-frontend
 ```
 
 **Changes not showing?**
+
 ```bash
 # Rebuild without cache
 docker build --no-cache -t pocket-dev-guild-frontend .
@@ -79,6 +84,7 @@ make build-no-cache
 ```
 
 **Container not starting?**
+
 ```bash
 # Check logs
 docker logs frontend

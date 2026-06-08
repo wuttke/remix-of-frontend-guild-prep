@@ -53,7 +53,10 @@ function ConversationsPage() {
       {conv.isLoading ? (
         <ul className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <li key={i} className="h-20 animate-pulse rounded-xl border border-border/40 bg-card/40" />
+            <li
+              key={i}
+              className="h-20 animate-pulse rounded-xl border border-border/40 bg-card/40"
+            />
           ))}
         </ul>
       ) : grouped.length === 0 ? (
@@ -93,9 +96,7 @@ function ConversationRow({ conversation }: { conversation: ConversationInfo }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="truncate font-medium">
-                {conversation.title ?? "Untitled"}
-              </div>
+              <div className="truncate font-medium">{conversation.title ?? "Untitled"}</div>
               {conversation.last_turn_status ? (
                 <StatusBadge status={conversation.last_turn_status} />
               ) : null}

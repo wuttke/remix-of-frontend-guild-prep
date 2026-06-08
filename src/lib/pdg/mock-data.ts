@@ -1,10 +1,4 @@
-import type {
-  ConversationInfo,
-  JobInfo,
-  LogLine,
-  Repo,
-  WorktreeInfo,
-} from "./types";
+import type { ConversationInfo, JobInfo, LogLine, Repo, WorktreeInfo } from "./types";
 
 const now = Date.now();
 const iso = (offsetMs: number) => new Date(now + offsetMs).toISOString();
@@ -254,19 +248,25 @@ export const mockJobLogs: Record<string, LogLine[]> = {
     { stream: "stdout", line: "Planning component tree.\n" },
     { stream: "stdout", line: "\n" },
     { stream: "stdout", line: "\x1b[90m🔧 Tool call: codebase-retrieval\x1b[0m\n" },
-    { stream: "stdout", line: "   information_request: \"Log viewer components and ANSI rendering patterns\"\n" },
+    {
+      stream: "stdout",
+      line: '   information_request: "Log viewer components and ANSI rendering patterns"\n',
+    },
     { stream: "stdout", line: "\n" },
     { stream: "stdout", line: "\x1b[90m📋 Tool result: codebase-retrieval\x1b[0m\n" },
     { stream: "stdout", line: "The following code sections were retrieved:\n" },
     { stream: "stdout", line: "Path: src/components/pdg/LogViewer.tsx\n" },
-    { stream: "stdout", line: "     1  import { useEffect, useRef, useState } from \"react\";\n" },
-    { stream: "stdout", line: "     2  import { pdg } from \"@/lib/pdg/client\";\n" },
+    { stream: "stdout", line: '     1  import { useEffect, useRef, useState } from "react";\n' },
+    { stream: "stdout", line: '     2  import { pdg } from "@/lib/pdg/client";\n' },
     { stream: "stdout", line: "...\n" },
     { stream: "stdout", line: "\n" },
     { stream: "stdout", line: "🤖\n" },
     { stream: "stdout", line: "## Step 1: Dependencies\n" },
     { stream: "stdout", line: "Installing \x1b[33mansi-to-react\x1b[0m…\n" },
-    { stream: "stderr", line: "\x1b[33mwarn\x1b[0m  peer dependency react@^18 satisfied by react@19\n" },
+    {
+      stream: "stderr",
+      line: "\x1b[33mwarn\x1b[0m  peer dependency react@^18 satisfied by react@19\n",
+    },
     { stream: "stdout", line: "\n" },
     { stream: "stdout", line: "\x1b[90m🔧 Tool call: str-replace-editor\x1b[0m\n" },
     { stream: "stdout", line: "   command: str_replace\n" },
@@ -300,8 +300,14 @@ export const mockJobLogs: Record<string, LogLine[]> = {
   "job-005": [
     { stream: "stdout", line: "\x1b[36m›\x1b[0m auggie implement refresh-rotation\n" },
     { stream: "stdout", line: "Editing src/auth/refresh.py\n" },
-    { stream: "stderr", line: "\x1b[31mERROR\x1b[0m  tests/test_refresh.py::test_reuse_detected \x1b[1;31mFAILED\x1b[0m\n" },
-    { stream: "stderr", line: "\x1b[31mAssertionError:\x1b[0m expected reuse to revoke entire family\n" },
+    {
+      stream: "stderr",
+      line: "\x1b[31mERROR\x1b[0m  tests/test_refresh.py::test_reuse_detected \x1b[1;31mFAILED\x1b[0m\n",
+    },
+    {
+      stream: "stderr",
+      line: "\x1b[31mAssertionError:\x1b[0m expected reuse to revoke entire family\n",
+    },
     { stream: "stdout", line: "Exiting with code 1.\n" },
   ],
   "job-006": [],

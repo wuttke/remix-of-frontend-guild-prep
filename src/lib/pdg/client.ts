@@ -12,13 +12,7 @@
  *   - VITE_USE_MOCK_DATA=false → uses real backend at /api (for production/testing)
  */
 
-import {
-  mockConversations,
-  mockJobLogs,
-  mockJobs,
-  mockRepos,
-  mockWorktrees,
-} from "./mock-data";
+import { mockConversations, mockJobLogs, mockJobs, mockRepos, mockWorktrees } from "./mock-data";
 import type {
   ConversationCreate,
   ConversationInfo,
@@ -40,6 +34,7 @@ import type {
   WorktreeCreated,
   WorktreeInfo,
   WorktreeRemoved,
+  WorktreeStatus,
 } from "./types";
 
 export type Unsubscribe = () => void;
@@ -56,7 +51,12 @@ export interface PdgClient {
     body: WorktreeCreate,
     params?: WorktreeCreateParams,
   ): Promise<WorktreeCreated>;
-  deleteWorktree(repoId: string, name: string, params?: { archive_conversations?: boolean }): Promise<WorktreeRemoved>;
+  getWorktreeStatus(repoId: string, name: string): Promise<WorktreeStatus>;
+  deleteWorktree(
+    repoId: string,
+    name: string,
+    params?: { archive_conversations?: boolean },
+  ): Promise<WorktreeRemoved>;
 
   listJobs(params?: ListJobsParams): Promise<PaginatedResponse<JobInfo>>;
   getJob(jobId: string): Promise<JobInfo>;
@@ -71,9 +71,7 @@ export interface PdgClient {
     },
   ): Unsubscribe;
 
-  listConversations(
-    params?: ListConversationsParams,
-  ): Promise<PaginatedResponse<ConversationInfo>>;
+  listConversations(params?: ListConversationsParams): Promise<PaginatedResponse<ConversationInfo>>;
   getConversation(id: string): Promise<ConversationInfo>;
   createConversation(body: ConversationCreate): Promise<ConversationInfo>;
   createConversationTurn(
@@ -189,6 +187,38 @@ function makeMockClient(): PdgClient {
       (worktrees[repoId] ||= []).push(wt);
       void params;
       return { name, path: wt.path! };
+    },
+
+    async getWorktreeStatus(repoId, name) {
+      await delay();
+      const list = worktrees[repoId] ?? [];
+      const wt = list.find((w) => w.name === name);
+      if (!wt) {
+        throw new Error(`Worktree '${name}' not found in repository '${repoId}'`);
+      }
+      // Mock: randomly generate status for demonstration
+      const isDirty = Math.random() > 0.5;
+      const hasUntracked = Math.random() > 0.6;
+      const hasUnpushed = Math.random() > 0.7;
+
+      const messages: string[] = [];
+      if (isDirty) {
+        const count = Math.floor(Math.random() * 5) + 1;
+        messages.push(`Uncommitted changes in ${count} file(s)`);
+      }
+      if (hasUntracked) {
+        const count = Math.floor(Math.random() * 3) + 1;
+        messages.push(`Untracked files: ${count} file(s)`);
+      }
+      if (hasUnpushed) {
+        const count = Math.floor(Math.random() * 3) + 1;
+        messages.push(`Unpushed commits: ${count} commit(s) on branch ${wt.branch}`);
+      }
+
+      return {
+        is_clean: messages.length === 0,
+        messages,
+      };
     },
 
     async deleteWorktree(repoId, name, params) {
@@ -333,9 +363,7 @@ function makeMockClient(): PdgClient {
         session_id: conv.session_id,
       };
       jobs.unshift(job);
-      jobLogs[jobId] = [
-        { stream: "stdout", line: `› auggie run "${body.prompt}"\n` },
-      ];
+      jobLogs[jobId] = [{ stream: "stdout", line: `› auggie run "${body.prompt}"\n` }];
       conv.turns = [...conv.turns, jobId];
       conv.updated_at = new Date().toISOString();
       return { job_id: jobId };
@@ -396,12 +424,9 @@ function makeHttpClient(baseUrl: string): PdgClient {
 
   return {
     listRepos: () => json(url("/repos")),
-    createRepo: (body) =>
-      json(url("/repos"), { method: "POST", body: JSON.stringify(body) }),
-    cloneRepo: (body) =>
-      json(url("/repos/clone"), { method: "POST", body: JSON.stringify(body) }),
-    deleteRepo: (repoId) =>
-      json(url(`/repos/${repoId}`), { method: "DELETE" }),
+    createRepo: (body) => json(url("/repos"), { method: "POST", body: JSON.stringify(body) }),
+    cloneRepo: (body) => json(url("/repos/clone"), { method: "POST", body: JSON.stringify(body) }),
+    deleteRepo: (repoId) => json(url(`/repos/${repoId}`), { method: "DELETE" }),
 
     listWorktrees: (repoId) => json(url(`/repos/${repoId}/worktrees`)),
     createWorktree: (repoId, body, params) =>
@@ -409,8 +434,11 @@ function makeHttpClient(baseUrl: string): PdgClient {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    getWorktreeStatus: (repoId, name) => json(url(`/repos/${repoId}/worktrees/${name}/status`)),
     deleteWorktree: (repoId, name, params) =>
-      json(url(`/repos/${repoId}/worktrees/${name}${qs(params as Record<string, unknown>)}`), { method: "DELETE" }),
+      json(url(`/repos/${repoId}/worktrees/${name}${qs(params as Record<string, unknown>)}`), {
+        method: "DELETE",
+      }),
 
     listJobs: (params) => json(url(`/jobs${qs(params as Record<string, unknown>)}`)),
     getJob: (jobId) => json(url(`/jobs/${jobId}`)),
@@ -447,25 +475,20 @@ function makeHttpClient(baseUrl: string): PdgClient {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    archiveConversation: (id) =>
-      json(url(`/conversations/${id}`), { method: "DELETE" }),
+    archiveConversation: (id) => json(url(`/conversations/${id}`), { method: "DELETE" }),
 
     streamConversationEvents(id, handlers) {
       const es = new EventSource(url(`/conversations/${id}/events`));
       es.addEventListener("snapshot", (ev) => {
         try {
-          handlers.onSnapshot?.(
-            JSON.parse((ev as MessageEvent).data) as ConversationStateEvent,
-          );
+          handlers.onSnapshot?.(JSON.parse((ev as MessageEvent).data) as ConversationStateEvent);
         } catch (err) {
           handlers.onError?.(err);
         }
       });
       es.addEventListener("update", (ev) => {
         try {
-          handlers.onUpdate?.(
-            JSON.parse((ev as MessageEvent).data) as ConversationStateEvent,
-          );
+          handlers.onUpdate?.(JSON.parse((ev as MessageEvent).data) as ConversationStateEvent);
         } catch (err) {
           handlers.onError?.(err);
         }

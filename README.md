@@ -27,11 +27,13 @@ Das Frontend kann in zwei Modi laufen. Die Auswahl passiert über die Env-Variab
 ist, wird der echte Backend-Client benutzt.
 
 #### Mock-Modus (Default, Lovable-Preview)
+
 - Keine `.env`-Datei nötig
 - Nutzt In-Memory Mock-Daten aus `src/lib/pdg/mock-data.ts`
 - So läuft auch die Lovable-Preview, weil dort keine `.env`/`.env.local` existiert
 
 #### Live-Modus (lokal, gegen echtes Backend)
+
 Lege einmalig eine **`.env.local`** an (ist in `.gitignore`, wird nie nach
 Lovable übertragen):
 
@@ -41,7 +43,6 @@ VITE_USE_MOCK_DATA=false
 ```
 
 Vite proxied dann `/api/*` → `http://localhost:8000/api/*` (siehe `vite.config.ts`).
-
 
 ### Backend starten (für Live-Modus)
 
