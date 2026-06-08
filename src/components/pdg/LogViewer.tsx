@@ -236,8 +236,7 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
       bgClass = "bg-accent/10";
       break;
     case "agent-response":
-      // No emoji for agent response, just the label
-      icon = "";
+      icon = "🤖";
       label = "Agent response";
       bgClass = "bg-blue-500/10";
       break;
@@ -252,7 +251,23 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
       bgClass = "bg-muted/10";
   }
 
-  const lineCount = lines.length;
+  // Filter out marker lines from content
+  // For agent-response: remove the first line if it's just "🤖"
+  // For summary: remove the first line if it's just "---"
+  let contentLines = lines;
+  if (type === "agent-response" && lines.length > 0) {
+    const firstLine = lines[0].line.trim();
+    if (AGENT_RESPONSE_PATTERN.test(firstLine)) {
+      contentLines = lines.slice(1);
+    }
+  } else if (type === "summary" && lines.length > 0) {
+    const firstLine = lines[0].line.trim();
+    if (SUMMARY_PATTERN.test(firstLine)) {
+      contentLines = lines.slice(1);
+    }
+  }
+
+  const lineCount = contentLines.length;
 
   return (
     <div className="my-1">
@@ -282,7 +297,7 @@ function CollapsibleSection({ section, onToggle }: CollapsibleSectionProps) {
       {/* Content - only render when expanded */}
       {!collapsed && (
         <div className="ml-5 mt-1 border-l-2 border-muted/30 pl-2">
-          {lines.map((line, i) => (
+          {contentLines.map((line, i) => (
             <LogLineContent key={i} line={line} />
           ))}
         </div>
