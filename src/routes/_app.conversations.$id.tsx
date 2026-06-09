@@ -19,11 +19,17 @@ export const Route = createFileRoute("/_app/conversations/$id")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      from: (search.from as string) || undefined,
+    };
+  },
   component: ConversationDetail,
 });
 
 function ConversationDetail() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
@@ -82,13 +88,16 @@ function ConversationDetail() {
   );
   const hasRunningTurn = orderedTurns.some((j) => j.status === "queued" || j.status === "running");
 
+  const backTo = search.from === "archived" ? "/conversations/archived" : "/conversations";
+  const backLabel = search.from === "archived" ? "Archived conversations" : "All conversations";
+
   return (
     <div className="space-y-4">
       <Link
-        to="/conversations"
+        to={backTo}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> All conversations
+        <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
       <header className="flex items-start justify-between gap-3">
@@ -169,39 +178,41 @@ function ConversationDetail() {
         </ul>
       </section>
 
-      <section className="rounded-xl border border-border/60 bg-card p-3">
-        <Textarea
-          ref={textareaRef}
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-              e.preventDefault();
-              if (prompt.trim() && !sendTurn.isPending && !hasRunningTurn) {
-                sendTurn.mutate();
+      {!c.archived ? (
+        <section className="rounded-xl border border-border/60 bg-card p-3">
+          <Textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                if (prompt.trim() && !sendTurn.isPending && !hasRunningTurn) {
+                  sendTurn.mutate();
+                }
               }
+            }}
+            placeholder={
+              orderedTurns.length === 0
+                ? "What do you want to do today?"
+                : "Send another turn to the agent…"
             }
-          }}
-          placeholder={
-            orderedTurns.length === 0
-              ? "What do you want to do today?"
-              : "Send another turn to the agent…"
-          }
-          rows={3}
-          className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            className="gap-1.5"
-            disabled={!prompt.trim() || sendTurn.isPending || hasRunningTurn}
-            onClick={() => sendTurn.mutate()}
-          >
-            <Send className="h-4 w-4" />
-            {sendTurn.isPending ? "Sending…" : hasRunningTurn ? "Turn in progress…" : "Send"}
-          </Button>
-        </div>
-      </section>
+            rows={3}
+            className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={!prompt.trim() || sendTurn.isPending || hasRunningTurn}
+              onClick={() => sendTurn.mutate()}
+            >
+              <Send className="h-4 w-4" />
+              {sendTurn.isPending ? "Sending…" : hasRunningTurn ? "Turn in progress…" : "Send"}
+            </Button>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

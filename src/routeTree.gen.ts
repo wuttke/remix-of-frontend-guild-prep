@@ -17,6 +17,7 @@ import { Route as AppConversationsRouteImport } from './routes/_app.conversation
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppConversationsIndexRouteImport } from './routes/_app.conversations.index'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
+import { Route as AppConversationsArchivedRouteImport } from './routes/_app.conversations.archived'
 import { Route as AppConversationsIdRouteImport } from './routes/_app.conversations.$id'
 
 const AppRoute = AppRouteImport.update({
@@ -58,6 +59,12 @@ const AppJobsIdRoute = AppJobsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppJobsRoute,
 } as any)
+const AppConversationsArchivedRoute =
+  AppConversationsArchivedRouteImport.update({
+    id: '/archived',
+    path: '/archived',
+    getParentRoute: () => AppConversationsRoute,
+  } as any)
 const AppConversationsIdRoute = AppConversationsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/jobs': typeof AppJobsRouteWithChildren
   '/repos': typeof AppReposRoute
   '/conversations/$id': typeof AppConversationsIdRoute
+  '/conversations/archived': typeof AppConversationsArchivedRoute
   '/jobs/$id': typeof AppJobsIdRoute
   '/conversations/': typeof AppConversationsIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -78,6 +86,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/repos': typeof AppReposRoute
   '/conversations/$id': typeof AppConversationsIdRoute
+  '/conversations/archived': typeof AppConversationsArchivedRoute
   '/jobs/$id': typeof AppJobsIdRoute
   '/conversations': typeof AppConversationsIndexRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -90,6 +99,7 @@ export interface FileRoutesById {
   '/_app/jobs': typeof AppJobsRouteWithChildren
   '/_app/repos': typeof AppReposRoute
   '/_app/conversations/$id': typeof AppConversationsIdRoute
+  '/_app/conversations/archived': typeof AppConversationsArchivedRoute
   '/_app/jobs/$id': typeof AppJobsIdRoute
   '/_app/conversations/': typeof AppConversationsIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/repos'
     | '/conversations/$id'
+    | '/conversations/archived'
     | '/jobs/$id'
     | '/conversations/'
     | '/jobs/'
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '/'
     | '/repos'
     | '/conversations/$id'
+    | '/conversations/archived'
     | '/jobs/$id'
     | '/conversations'
     | '/jobs'
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
     | '/_app/jobs'
     | '/_app/repos'
     | '/_app/conversations/$id'
+    | '/_app/conversations/archived'
     | '/_app/jobs/$id'
     | '/_app/conversations/'
     | '/_app/jobs/'
@@ -189,6 +202,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdRouteImport
       parentRoute: typeof AppJobsRoute
     }
+    '/_app/conversations/archived': {
+      id: '/_app/conversations/archived'
+      path: '/archived'
+      fullPath: '/conversations/archived'
+      preLoaderRoute: typeof AppConversationsArchivedRouteImport
+      parentRoute: typeof AppConversationsRoute
+    }
     '/_app/conversations/$id': {
       id: '/_app/conversations/$id'
       path: '/$id'
@@ -201,11 +221,13 @@ declare module '@tanstack/react-router' {
 
 interface AppConversationsRouteChildren {
   AppConversationsIdRoute: typeof AppConversationsIdRoute
+  AppConversationsArchivedRoute: typeof AppConversationsArchivedRoute
   AppConversationsIndexRoute: typeof AppConversationsIndexRoute
 }
 
 const AppConversationsRouteChildren: AppConversationsRouteChildren = {
   AppConversationsIdRoute: AppConversationsIdRoute,
+  AppConversationsArchivedRoute: AppConversationsArchivedRoute,
   AppConversationsIndexRoute: AppConversationsIndexRoute,
 }
 
