@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { pdg } from "@/lib/pdg/client";
+import { formatBranchTitle } from "@/lib/utils";
 
 interface NewConversationDialogProps {
   /** Pre-selected repo id (optional) */
@@ -62,13 +63,24 @@ export function NewConversationDialog({
   });
 
   const create = useMutation({
-    mutationFn: () =>
-      pdg.createConversation({
+    mutationFn: () => {
+      // If no title provided, try to generate one from the branch name
+      let conversationTitle = title || null;
+      if (!conversationTitle && worktree !== "__none") {
+        // Find the selected worktree to get its branch name
+        const selectedWorktree = worktrees.data?.find((w) => w.name === worktree);
+        if (selectedWorktree?.branch) {
+          conversationTitle = formatBranchTitle(selectedWorktree.branch);
+        }
+      }
+
+      return pdg.createConversation({
         repo_id: repoId,
         worktree: worktree === "__none" ? null : worktree,
         agent_id: null,
-        title: title || null,
-      }),
+        title: conversationTitle,
+      });
+    },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       toast.success("Conversation created");
