@@ -426,27 +426,27 @@ function makeHttpClient(baseUrl: string): PdgClient {
     listRepos: () => json(url("/repos")),
     createRepo: (body) => json(url("/repos"), { method: "POST", body: JSON.stringify(body) }),
     cloneRepo: (body) => json(url("/repos/clone"), { method: "POST", body: JSON.stringify(body) }),
-    deleteRepo: (repoId) => json(url(`/repos/${repoId}`), { method: "DELETE" }),
+    deleteRepo: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}`), { method: "DELETE" }),
 
-    listWorktrees: (repoId) => json(url(`/repos/${repoId}/worktrees`)),
+    listWorktrees: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees`)),
     createWorktree: (repoId, body, params) =>
-      json(url(`/repos/${repoId}/worktrees${qs(params as Record<string, unknown>)}`), {
+      json(url(`/repos/${encodeURIComponent(repoId)}/worktrees${qs(params as Record<string, unknown>)}`), {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    getWorktreeStatus: (repoId, name) => json(url(`/repos/${repoId}/worktrees/${name}/status`)),
+    getWorktreeStatus: (repoId, name) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/status`)),
     deleteWorktree: (repoId, name, params) =>
-      json(url(`/repos/${repoId}/worktrees/${name}${qs(params as Record<string, unknown>)}`), {
+      json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}${qs(params as Record<string, unknown>)}`), {
         method: "DELETE",
       }),
 
     listJobs: (params) => json(url(`/jobs${qs(params as Record<string, unknown>)}`)),
-    getJob: (jobId) => json(url(`/jobs/${jobId}`)),
-    getJobLog: (jobId) => json(url(`/jobs/${jobId}/log`)),
-    cancelJob: (jobId) => json(url(`/jobs/${jobId}`), { method: "DELETE" }),
+    getJob: (jobId) => json(url(`/jobs/${encodeURIComponent(jobId)}`)),
+    getJobLog: (jobId) => json(url(`/jobs/${encodeURIComponent(jobId)}/log`)),
+    cancelJob: (jobId) => json(url(`/jobs/${encodeURIComponent(jobId)}`), { method: "DELETE" }),
 
     streamJobEvents(jobId, handlers) {
-      const es = new EventSource(url(`/jobs/${jobId}/events`));
+      const es = new EventSource(url(`/jobs/${encodeURIComponent(jobId)}/events`));
       es.addEventListener("log", (ev) => {
         try {
           handlers.onLog?.(JSON.parse((ev as MessageEvent).data) as LogLine);
@@ -467,18 +467,18 @@ function makeHttpClient(baseUrl: string): PdgClient {
 
     listConversations: (params) =>
       json(url(`/conversations${qs(params as Record<string, unknown>)}`)),
-    getConversation: (id) => json(url(`/conversations/${id}`)),
+    getConversation: (id) => json(url(`/conversations/${encodeURIComponent(id)}`)),
     createConversation: (body) =>
       json(url(`/conversations`), { method: "POST", body: JSON.stringify(body) }),
     createConversationTurn: (id, body) =>
-      json(url(`/conversations/${id}/turns`), {
+      json(url(`/conversations/${encodeURIComponent(id)}/turns`), {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    archiveConversation: (id) => json(url(`/conversations/${id}`), { method: "DELETE" }),
+    archiveConversation: (id) => json(url(`/conversations/${encodeURIComponent(id)}`), { method: "DELETE" }),
 
     streamConversationEvents(id, handlers) {
-      const es = new EventSource(url(`/conversations/${id}/events`));
+      const es = new EventSource(url(`/conversations/${encodeURIComponent(id)}/events`));
       es.addEventListener("snapshot", (ev) => {
         try {
           handlers.onSnapshot?.(JSON.parse((ev as MessageEvent).data) as ConversationStateEvent);
