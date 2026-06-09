@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Archive, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ function ConversationDetail() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const conv = useQuery({
     queryKey: ["conversation", id],
@@ -60,6 +61,17 @@ function ConversationDetail() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  // Auto-focus the textarea when conversation loads and has no turns yet
+  useEffect(() => {
+    if (conv.data && !turns.isLoading && turns.data?.items.length === 0) {
+      // Small delay to ensure the DOM is ready
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [conv.data, turns.data?.items.length, turns.isLoading]);
 
   if (conv.isLoading || !conv.data) {
     return <div className="h-24 animate-pulse rounded-xl bg-card/40" />;
@@ -159,8 +171,17 @@ function ConversationDetail() {
 
       <section className="rounded-xl border border-border/60 bg-card p-3">
         <Textarea
+          ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+              e.preventDefault();
+              if (prompt.trim() && !sendTurn.isPending && !hasRunningTurn) {
+                sendTurn.mutate();
+              }
+            }
+          }}
           placeholder={
             orderedTurns.length === 0
               ? "What do you want to do today?"
