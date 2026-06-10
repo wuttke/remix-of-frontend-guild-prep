@@ -19,6 +19,7 @@ import type {
   ConversationStateEvent,
   ConversationTurnCreate,
   ConversationTurnCreated,
+  ConversationUpdate,
   JobInfo,
   JobLog,
   JobStatusEvent,
@@ -74,6 +75,7 @@ export interface PdgClient {
   listConversations(params?: ListConversationsParams): Promise<PaginatedResponse<ConversationInfo>>;
   getConversation(id: string): Promise<ConversationInfo>;
   createConversation(body: ConversationCreate): Promise<ConversationInfo>;
+  updateConversation(id: string, body: ConversationUpdate): Promise<ConversationInfo>;
   createConversationTurn(
     id: string,
     body: ConversationTurnCreate,
@@ -344,6 +346,17 @@ function makeMockClient(): PdgClient {
       return clone(conv);
     },
 
+    async updateConversation(id, body) {
+      await delay();
+      const conv = conversations.find((c) => c.id === id);
+      if (!conv) throw new Error(`Conversation ${id} not found`);
+      if (body.title !== undefined) {
+        conv.title = body.title;
+      }
+      conv.updated_at = new Date().toISOString();
+      return clone(conv);
+    },
+
     async createConversationTurn(id, body) {
       await delay(180);
       const conv = conversations.find((c) => c.id === id);
@@ -470,6 +483,11 @@ function makeHttpClient(baseUrl: string): PdgClient {
     getConversation: (id) => json(url(`/conversations/${encodeURIComponent(id)}`)),
     createConversation: (body) =>
       json(url(`/conversations`), { method: "POST", body: JSON.stringify(body) }),
+    updateConversation: (id, body) =>
+      json(url(`/conversations/${encodeURIComponent(id)}`), {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
     createConversationTurn: (id, body) =>
       json(url(`/conversations/${encodeURIComponent(id)}/turns`), {
         method: "POST",

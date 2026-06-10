@@ -82,6 +82,10 @@ export interface ConversationCreate {
   title: string | null;
 }
 
+export interface ConversationUpdate {
+  title?: string | null;
+}
+
 export interface ConversationInfo {
   id: string;
   repo_id: string;
