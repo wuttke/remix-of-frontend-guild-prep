@@ -157,3 +157,52 @@ export interface WorktreeStatus {
   is_clean: boolean;
   messages: string[];
 }
+
+export interface WorktreeStatusItem {
+  name: string | null;
+  is_primary: boolean;
+  path: string;
+  branch: string | null;
+  is_clean: boolean;
+  messages: string[];
+}
+
+export interface WorktreeStatusSummary {
+  total_worktrees: number;
+  clean_count: number;
+  dirty_count: number;
+  all_clean: boolean;
+}
+
+export interface MultiWorktreeStatus {
+  repo_id: string;
+  primary: WorktreeStatusItem;
+  worktrees: WorktreeStatusItem[];
+  summary: WorktreeStatusSummary;
+}
+
+export interface GitFileStatus {
+  path: string;
+  status: string;
+  staged: boolean;
+  x: string;
+  y: string;
+}
+
+export interface GitStatusSummary {
+  total: number;
+  staged: number;
+  unstaged: number;
+  untracked: number;
+  conflicts: number;
+}
+
+export interface GitStatus {
+  branch: string | null;
+  head: string;
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+  files: GitFileStatus[];
+  summary: GitStatusSummary;
+}

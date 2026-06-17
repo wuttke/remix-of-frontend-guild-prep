@@ -2,13 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  CheckCircle2,
   ChevronDown,
+  Circle,
+  FileText,
   FolderGit2,
   GitBranch,
   GitFork,
   MessageSquare,
   Plus,
   Trash2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,7 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { NewConversationDialog } from "@/components/pdg/NewConversationDialog";
 import { pdg } from "@/lib/pdg/client";
-import type { Repo, WorktreeInfo } from "@/lib/pdg/types";
+import type { GitStatus, Repo, WorktreeInfo } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/repos")({
@@ -98,10 +102,18 @@ function RepoCard({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+
   const wtQuery = useQuery({
     queryKey: ["worktrees", repo.id],
     queryFn: () => pdg.listWorktrees(repo.id),
     enabled: expanded,
+  });
+
+  const statusQuery = useQuery({
+    queryKey: ["repo-status", repo.id],
+    queryFn: () => pdg.getRepoStatus(repo.id),
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   return (
@@ -125,8 +137,18 @@ function RepoCard({
             )}
           />
         </button>
-        <DeleteRepoButton repo={repo} />
+        <div className="flex items-center gap-2">
+          <RepoStatusIndicator status={statusQuery.data} onClick={() => setStatusDialogOpen(true)} />
+          <DeleteRepoButton repo={repo} />
+        </div>
       </div>
+
+      <RepoStatusDialog
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+        repo={repo}
+        status={statusQuery.data}
+      />
 
       {expanded ? (
         <div className="border-t border-border/60 bg-background/40 px-3 py-3">
@@ -157,6 +179,12 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
   const [dialogOpen, setDialogOpen] = useState(false);
   const [forceDelete, setForceDelete] = useState(false);
 
+  // Get repo status to find this worktree's status
+  const repoStatusQuery = useQuery({
+    queryKey: ["repo-status", repoId],
+    queryFn: () => pdg.getRepoStatus(repoId),
+  });
+
   const statusQuery = useQuery({
     queryKey: ["worktree-status", repoId, worktree.name],
     queryFn: () => pdg.getWorktreeStatus(repoId, worktree.name!),
@@ -178,6 +206,7 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["worktrees", repoId] });
+      qc.invalidateQueries({ queryKey: ["repo-status", repoId] });
       toast.success(`Removed ${worktree.name}`);
       setArchiveConversations(false); // Reset for next use
       setDialogOpen(false);
@@ -188,6 +217,11 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
 
   const worktreeName = worktree.name ?? null;
 
+  // Find this worktree's status from the repo status
+  const worktreeStatus = worktree.is_primary
+    ? repoStatusQuery.data?.primary
+    : repoStatusQuery.data?.worktrees.find((w) => w.name === worktree.name);
+
   return (
     <li className="flex items-center justify-between rounded-lg border border-border/40 bg-card/60 px-3 py-2">
       <div className="min-w-0">
@@ -197,6 +231,11 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
           {worktree.is_primary ? (
             <span className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
               primary
+            </span>
+          ) : null}
+          {worktreeStatus && !worktreeStatus.is_clean ? (
+            <span className="rounded-full border border-[color:var(--status-failed)]/30 bg-[color:var(--status-failed)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--status-failed)]">
+              changes
             </span>
           ) : null}
         </div>
@@ -628,6 +667,308 @@ function DeleteRepoButton({ repo }: { repo: Repo }) {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function RepoStatusIndicator({
+  status,
+  onClick,
+}: {
+  status?: import("@/lib/pdg/types").MultiWorktreeStatus;
+  onClick: () => void;
+}) {
+  if (!status) {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-muted/60"
+        title="Loading status..."
+      >
+        <Circle className="h-4 w-4 animate-pulse text-muted-foreground" />
+      </button>
+    );
+  }
+
+  const isClean = status.summary.all_clean;
+  const Icon = isClean ? CheckCircle2 : XCircle;
+  const colorClass = isClean
+    ? "text-[color:var(--status-finished)] hover:bg-[color:var(--status-finished)]/10"
+    : "text-[color:var(--status-failed)] hover:bg-[color:var(--status-failed)]/10";
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors",
+        colorClass,
+      )}
+      title={
+        isClean
+          ? "All worktrees clean"
+          : `${status.summary.dirty_count} of ${status.summary.total_worktrees} worktree(s) have changes`
+      }
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
+function RepoStatusDialog({
+  open,
+  onOpenChange,
+  repo,
+  status,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  repo: Repo;
+  status?: import("@/lib/pdg/types").MultiWorktreeStatus;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClick={(e) => e.stopPropagation()} className="max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Repository Status: {repo.name}</DialogTitle>
+          <DialogDescription>
+            {status?.summary.all_clean
+              ? "All worktrees are clean with no uncommitted changes or unpushed commits."
+              : `${status?.summary.dirty_count ?? 0} of ${status?.summary.total_worktrees ?? 0} worktree(s) have changes.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        {status ? (
+          <div className="space-y-3 overflow-y-auto flex-1 px-1">
+            {/* Primary worktree */}
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Primary Repository
+              </h3>
+              <WorktreeStatusItem repoId={repo.id} item={status.primary} />
+            </div>
+
+            {/* Additional worktrees */}
+            {status.worktrees.length > 0 ? (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Worktrees ({status.worktrees.length})
+                </h3>
+                <div className="space-y-2">
+                  {status.worktrees.map((wt) => (
+                    <WorktreeStatusItem key={wt.name} repoId={repo.id} item={wt} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-sm text-muted-foreground">Loading status...</div>
+        )}
+
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WorktreeStatusItem({ repoId, item }: { repoId: string; item: import("@/lib/pdg/types").WorktreeStatusItem }) {
+  const [fileDialogOpen, setFileDialogOpen] = useState(false);
+  const Icon = item.is_clean ? CheckCircle2 : XCircle;
+  const colorClass = item.is_clean
+    ? "text-[color:var(--status-finished)]"
+    : "text-[color:var(--status-failed)]";
+
+  return (
+    <>
+      <div className="rounded-lg border border-border/60 bg-card/60 p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate text-sm font-medium">
+                {item.branch ?? "(no branch)"}
+                {item.is_primary ? (
+                  <span className="ml-2 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    primary
+                  </span>
+                ) : null}
+              </span>
+            </div>
+            <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+              {item.name ?? item.path}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {!item.is_clean ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFileDialogOpen(true);
+                }}
+                className="h-7 px-2 text-xs"
+                title="View changed files"
+              >
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                Files
+              </Button>
+            ) : null}
+            <Icon className={cn("h-5 w-5", colorClass)} />
+          </div>
+        </div>
+
+        {!item.is_clean && item.messages.length > 0 ? (
+          <div className="mt-2 space-y-1 border-t border-border/40 pt-2">
+            {item.messages.map((msg, idx) => (
+              <div key={idx} className="text-xs text-muted-foreground">
+                • {msg}
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <FileStatusDialog
+        open={fileDialogOpen}
+        onOpenChange={setFileDialogOpen}
+        repoId={repoId}
+        worktreeName={item.name}
+        isPrimary={item.is_primary}
+      />
+    </>
+  );
+}
+
+function FileStatusDialog({
+  open,
+  onOpenChange,
+  repoId,
+  worktreeName,
+  isPrimary,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  repoId: string;
+  worktreeName: string | null;
+  isPrimary: boolean;
+}) {
+  const gitStatusQuery = useQuery({
+    queryKey: ["git-status", repoId, worktreeName],
+    queryFn: () =>
+      isPrimary
+        ? pdg.getRepoGitStatus(repoId)
+        : pdg.getWorktreeGitStatus(repoId, worktreeName!),
+    enabled: open && (!isPrimary ? worktreeName != null : true),
+  });
+
+  const gitStatus = gitStatusQuery.data;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClick={(e) => e.stopPropagation()} className="max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>
+            Changed Files: {isPrimary ? "Primary Repository" : worktreeName}
+          </DialogTitle>
+          <DialogDescription>
+            {gitStatus
+              ? `${gitStatus.summary.total} file(s) with changes`
+              : "Loading file details..."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {gitStatus ? (
+          <div className="space-y-3 overflow-y-auto flex-1 px-1">
+            {gitStatus.summary.staged > 0 ? (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Staged Changes ({gitStatus.summary.staged})
+                </h3>
+                <div className="space-y-1">
+                  {gitStatus.files
+                    .filter((f) => f.staged)
+                    .map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded border border-border/40 bg-card/40 px-2 py-1.5 font-mono text-xs"
+                      >
+                        <span className="text-[color:var(--status-finished)] mr-2">{file.x}</span>
+                        <span className="text-muted-foreground">{file.path}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : null}
+
+            {gitStatus.summary.unstaged > 0 ? (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Unstaged Changes ({gitStatus.summary.unstaged})
+                </h3>
+                <div className="space-y-1">
+                  {gitStatus.files
+                    .filter((f) => !f.staged && f.status !== "untracked")
+                    .map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded border border-border/40 bg-card/40 px-2 py-1.5 font-mono text-xs"
+                      >
+                        <span className="text-[color:var(--status-failed)] mr-2">{file.y}</span>
+                        <span className="text-muted-foreground">{file.path}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : null}
+
+            {gitStatus.summary.untracked > 0 ? (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Untracked Files ({gitStatus.summary.untracked})
+                </h3>
+                <div className="space-y-1">
+                  {gitStatus.files
+                    .filter((f) => f.status === "untracked")
+                    .map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded border border-border/40 bg-card/40 px-2 py-1.5 font-mono text-xs"
+                      >
+                        <span className="text-muted-foreground mr-2">??</span>
+                        <span className="text-muted-foreground">{file.path}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : null}
+
+            {gitStatus.summary.total === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No changes detected
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-sm text-muted-foreground">Loading file details...</div>
+        )}
+
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

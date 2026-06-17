@@ -45,6 +45,8 @@ export interface PdgClient {
   createRepo(body: RepoCreate): Promise<Repo>;
   cloneRepo(body: RepoClone): Promise<Repo>;
   deleteRepo(repoId: string): Promise<void>;
+  getRepoStatus(repoId: string): Promise<import("./types").MultiWorktreeStatus>;
+  getRepoGitStatus(repoId: string): Promise<import("./types").GitStatus>;
 
   listWorktrees(repoId: string): Promise<WorktreeInfo[]>;
   createWorktree(
@@ -53,6 +55,7 @@ export interface PdgClient {
     params?: WorktreeCreateParams,
   ): Promise<WorktreeCreated>;
   getWorktreeStatus(repoId: string, name: string): Promise<WorktreeStatus>;
+  getWorktreeGitStatus(repoId: string, name: string): Promise<import("./types").GitStatus>;
   deleteWorktree(
     repoId: string,
     name: string,
@@ -169,6 +172,77 @@ function makeMockClient(): PdgClient {
       repos.splice(index, 1);
     },
 
+    async getRepoStatus(repoId) {
+      await delay();
+      const repo = repos.find((r) => r.id === repoId);
+      if (!repo) {
+        throw new Error(`Repository '${repoId}' not found`);
+      }
+
+      const wtList = worktrees[repoId] ?? [];
+      const primaryWt = wtList.find((w) => w.is_primary);
+
+      // Generate mock status for primary
+      const primaryClean = Math.random() > 0.3;
+      const primaryMessages: string[] = [];
+      if (!primaryClean) {
+        if (Math.random() > 0.5) {
+          primaryMessages.push(`Uncommitted changes in ${Math.floor(Math.random() * 5) + 1} file(s)`);
+        }
+        if (Math.random() > 0.6) {
+          primaryMessages.push(`Unpushed commits: ${Math.floor(Math.random() * 3) + 1} commit(s)`);
+        }
+      }
+
+      const primary: import("./types").WorktreeStatusItem = {
+        name: primaryWt?.name ?? null,
+        is_primary: true,
+        path: primaryWt?.path ?? repo.path,
+        branch: primaryWt?.branch ?? "main",
+        is_clean: primaryClean,
+        messages: primaryMessages,
+      };
+
+      // Generate mock status for worktrees
+      const worktreeStatuses: import("./types").WorktreeStatusItem[] = wtList
+        .filter((w) => !w.is_primary)
+        .map((w) => {
+          const isClean = Math.random() > 0.4;
+          const messages: string[] = [];
+          if (!isClean) {
+            if (Math.random() > 0.5) {
+              messages.push(`Uncommitted changes in ${Math.floor(Math.random() * 5) + 1} file(s)`);
+            }
+            if (Math.random() > 0.6) {
+              messages.push(`Unpushed commits: ${Math.floor(Math.random() * 3) + 1} commit(s)`);
+            }
+          }
+          return {
+            name: w.name,
+            is_primary: false,
+            path: w.path!,
+            branch: w.branch,
+            is_clean: isClean,
+            messages,
+          };
+        });
+
+      const cleanCount = [primary, ...worktreeStatuses].filter((w) => w.is_clean).length;
+      const totalWorktrees = 1 + worktreeStatuses.length;
+
+      return {
+        repo_id: repoId,
+        primary,
+        worktrees: worktreeStatuses,
+        summary: {
+          total_worktrees: totalWorktrees,
+          clean_count: cleanCount,
+          dirty_count: totalWorktrees - cleanCount,
+          all_clean: cleanCount === totalWorktrees,
+        },
+      };
+    },
+
     async listWorktrees(repoId) {
       await delay();
       return clone(worktrees[repoId] ?? []);
@@ -220,6 +294,56 @@ function makeMockClient(): PdgClient {
       return {
         is_clean: messages.length === 0,
         messages,
+      };
+    },
+
+    async getRepoGitStatus() {
+      await delay();
+      return this._generateMockGitStatus();
+    },
+
+    async getWorktreeGitStatus() {
+      await delay();
+      return this._generateMockGitStatus();
+    },
+
+    _generateMockGitStatus(): import("./types").GitStatus {
+      const fileCount = Math.floor(Math.random() * 10);
+      const files: import("./types").GitFileStatus[] = [];
+      const mockFiles = ["src/main.ts", "src/lib/utils.ts", "README.md", "package.json", ".gitignore"];
+
+      for (let i = 0; i < fileCount; i++) {
+        const path = mockFiles[i % mockFiles.length];
+        const statusType = Math.floor(Math.random() * 4);
+        let x = " ", y = " ", status = "", staged = false;
+
+        if (statusType === 0) {
+          x = "M"; y = " "; status = "modified"; staged = true;
+        } else if (statusType === 1) {
+          x = " "; y = "M"; status = "modified"; staged = false;
+        } else if (statusType === 2) {
+          x = "?"; y = "?"; status = "untracked"; staged = false;
+        } else {
+          x = "A"; y = " "; status = "added"; staged = true;
+        }
+
+        files.push({ path, status, staged, x, y });
+      }
+
+      return {
+        branch: "main",
+        head: Math.random().toString(16).slice(2, 18),
+        upstream: "origin/main",
+        ahead: Math.floor(Math.random() * 3),
+        behind: Math.floor(Math.random() * 2),
+        files,
+        summary: {
+          total: files.length,
+          staged: files.filter(f => f.staged).length,
+          unstaged: files.filter(f => !f.staged && f.status !== "untracked").length,
+          untracked: files.filter(f => f.status === "untracked").length,
+          conflicts: 0,
+        },
       };
     },
 
@@ -440,6 +564,8 @@ function makeHttpClient(baseUrl: string): PdgClient {
     createRepo: (body) => json(url("/repos"), { method: "POST", body: JSON.stringify(body) }),
     cloneRepo: (body) => json(url("/repos/clone"), { method: "POST", body: JSON.stringify(body) }),
     deleteRepo: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}`), { method: "DELETE" }),
+    getRepoStatus: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/status/all`)),
+    getRepoGitStatus: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/git/status`)),
 
     listWorktrees: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees`)),
     createWorktree: (repoId, body, params) =>
@@ -448,6 +574,7 @@ function makeHttpClient(baseUrl: string): PdgClient {
         body: JSON.stringify(body),
       }),
     getWorktreeStatus: (repoId, name) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/status`)),
+    getWorktreeGitStatus: (repoId, name) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/git/status`)),
     deleteWorktree: (repoId, name, params) =>
       json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}${qs(params as Record<string, unknown>)}`), {
         method: "DELETE",
