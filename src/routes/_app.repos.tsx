@@ -130,6 +130,12 @@ function RepoCard({
             <div className="font-medium">{repo.name}</div>
             <div className="truncate font-mono text-[11px] text-muted-foreground">{repo.path}</div>
           </div>
+          {statusQuery.data?.summary.total_worktrees != null && (
+            <span className="shrink-0 rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              {statusQuery.data.summary.total_worktrees} worktree
+              {statusQuery.data.summary.total_worktrees !== 1 ? "s" : ""}
+            </span>
+          )}
           <ChevronDown
             className={cn(
               "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
