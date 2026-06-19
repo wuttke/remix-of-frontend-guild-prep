@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -43,7 +43,7 @@ import {
 import { NewConversationDialog } from "@/components/pdg/NewConversationDialog";
 import { pdg } from "@/lib/pdg/client";
 import type { GitStatus, Repo, WorktreeInfo } from "@/lib/pdg/types";
-import { cn } from "@/lib/utils";
+import { cn, formatBranchTitle } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/repos")({
   head: () => ({
@@ -371,18 +371,34 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
 
 function CreateWorktreeDialog({ repoId }: { repoId: string }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [branch, setBranch] = useState("");
   const [existing, setExisting] = useState(false);
 
   const create = useMutation({
     mutationFn: () => pdg.createWorktree(repoId, { branch }, { existing }),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       qc.invalidateQueries({ queryKey: ["worktrees", repoId] });
       toast.success(`Created ${data.name}`);
       setOpen(false);
       setBranch("");
       setExisting(false);
+
+      // Create a conversation for the new worktree
+      try {
+        const conversation = await pdg.createConversation({
+          repo_id: repoId,
+          worktree: data.name,
+          agent_id: null,
+          title: formatBranchTitle(branch),
+        });
+        qc.invalidateQueries({ queryKey: ["conversations"] });
+        toast.success("Conversation created");
+        navigate({ to: "/conversations/$id", params: { id: conversation.id } });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to create conversation");
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });
