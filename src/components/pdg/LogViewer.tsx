@@ -412,22 +412,27 @@ export function LogViewer({
     (s) => s.type === "tool" || s.type === "agent-response" || s.type === "summary",
   );
 
+  // Check if job is running (not completed)
+  const isRunning = jobStatus === "queued" || jobStatus === "running";
+
   return (
     <div className="space-y-2">
       {/* Controls: Tail mode checkbox and Expand/Collapse All buttons */}
       {lines.length > 0 && (
         <div className="flex items-center gap-4">
-          {/* Tail log checkbox */}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="tail-mode"
-              checked={tailMode}
-              onCheckedChange={(checked) => setTailMode(checked === true)}
-            />
-            <Label htmlFor="tail-mode" className="cursor-pointer text-xs font-normal">
-              Tail log
-            </Label>
-          </div>
+          {/* Tail log checkbox - only show for running jobs */}
+          {isRunning && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="tail-mode"
+                checked={tailMode}
+                onCheckedChange={(checked) => setTailMode(checked === true)}
+              />
+              <Label htmlFor="tail-mode" className="cursor-pointer text-xs font-normal">
+                Tail log
+              </Label>
+            </div>
+          )}
 
           {/* Expand/Collapse All buttons - only show if there are collapsible sections */}
           {hasCollapsibleSections && (
