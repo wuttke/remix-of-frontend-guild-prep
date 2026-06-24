@@ -345,12 +345,15 @@ function WorktreeRow({ repoId, worktree }: { repoId: string; worktree: WorktreeI
                   Cancel
                 </AlertDialogCancel>
                 {statusQuery.data && !statusQuery.data.is_clean && !forceDelete ? (
-                  <AlertDialogAction
-                    onClick={() => setForceDelete(true)}
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setForceDelete(true);
+                    }}
                     className="bg-amber-600 text-white hover:bg-amber-700"
                   >
                     Delete Anyway
-                  </AlertDialogAction>
+                  </Button>
                 ) : (
                   <AlertDialogAction
                     onClick={() => deleteMutation.mutate()}
