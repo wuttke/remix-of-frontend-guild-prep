@@ -4,6 +4,8 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { pdg } from "@/lib/pdg/client";
 import type { JobStatusEvent, LogLine, JobStatus } from "@/lib/pdg/types";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 /* ============================================================================
  * Section Types & Grouping Logic
@@ -326,6 +328,7 @@ export function LogViewer({
 }) {
   const [lines, setLines] = useState<LogLine[]>([]);
   const [sections, setSections] = useState<LogSection[]>([]);
+  const [tailMode, setTailMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -359,17 +362,27 @@ export function LogViewer({
 
   // Group lines into sections whenever lines change
   useEffect(() => {
-    setSections(groupLogsIntoSections(lines));
-  }, [lines]);
+    const newSections = groupLogsIntoSections(lines);
+    // In tail mode, expand all sections
+    if (tailMode) {
+      setSections(newSections.map((section) => ({ ...section, collapsed: false })));
+    } else {
+      setSections(newSections);
+    }
+  }, [lines, tailMode]);
 
+  // Auto-scroll to bottom only in tail mode
   useEffect(() => {
+    if (!tailMode) return;
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [lines]);
+  }, [lines, tailMode]);
 
   // Toggle a section's collapsed state
   const toggleSection = (index: number) => {
+    // Manual toggle disables tail mode
+    setTailMode(false);
     setSections((prev) =>
       prev.map((section, i) =>
         i === index ? { ...section, collapsed: !section.collapsed } : section,
@@ -379,10 +392,14 @@ export function LogViewer({
 
   // Expand/collapse all tool sections
   const expandAll = () => {
+    // Manual expand disables tail mode
+    setTailMode(false);
     setSections((prev) => prev.map((section) => ({ ...section, collapsed: false })));
   };
 
   const collapseAll = () => {
+    // Manual collapse disables tail mode
+    setTailMode(false);
     setSections((prev) =>
       prev.map((section) =>
         section.type === "normal" ? section : { ...section, collapsed: true },
@@ -397,21 +414,38 @@ export function LogViewer({
 
   return (
     <div className="space-y-2">
-      {/* Expand/Collapse All buttons */}
-      {hasCollapsibleSections && lines.length > 0 && (
-        <div className="flex gap-2">
-          <button
-            onClick={expandAll}
-            className="rounded bg-muted/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            Expand All
-          </button>
-          <button
-            onClick={collapseAll}
-            className="rounded bg-muted/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            Collapse All
-          </button>
+      {/* Controls: Tail mode checkbox and Expand/Collapse All buttons */}
+      {lines.length > 0 && (
+        <div className="flex items-center gap-4">
+          {/* Tail log checkbox */}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="tail-mode"
+              checked={tailMode}
+              onCheckedChange={(checked) => setTailMode(checked === true)}
+            />
+            <Label htmlFor="tail-mode" className="cursor-pointer text-xs font-normal">
+              Tail log
+            </Label>
+          </div>
+
+          {/* Expand/Collapse All buttons - only show if there are collapsible sections */}
+          {hasCollapsibleSections && (
+            <>
+              <button
+                onClick={expandAll}
+                className="rounded bg-muted/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                Expand All
+              </button>
+              <button
+                onClick={collapseAll}
+                className="rounded bg-muted/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                Collapse All
+              </button>
+            </>
+          )}
         </div>
       )}
 
