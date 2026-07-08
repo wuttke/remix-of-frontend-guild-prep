@@ -206,3 +206,31 @@ export interface GitStatus {
   files: GitFileStatus[];
   summary: GitStatusSummary;
 }
+
+export interface GitDiffFile {
+  path: string;
+  old_path: string | null;
+  additions: number;
+  deletions: number;
+  changes: number;
+  binary: boolean;
+  diff: string | null;
+}
+
+export interface GitDiffSummary {
+  files_changed: number;
+  insertions: number;
+  deletions: number;
+}
+
+export interface GitFileDiff {
+  base: string;
+  files: GitDiffFile[];
+  summary: GitDiffSummary;
+}
+
+export interface GitFileContent {
+  path: string;
+  content: string;
+  staged: boolean;
+}

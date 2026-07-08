@@ -13,6 +13,7 @@ import {
   Plus,
   Trash2,
   XCircle,
+  Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { NewConversationDialog } from "@/components/pdg/NewConversationDialog";
+import { GitDiffViewer } from "@/components/pdg/GitDiffViewer";
 import { pdg } from "@/lib/pdg/client";
 import type { GitStatus, Repo, WorktreeInfo } from "@/lib/pdg/types";
 import { cn, formatBranchTitle } from "@/lib/utils";
@@ -806,6 +808,7 @@ function RepoStatusDialog({
 }
 
 function WorktreeStatusItem({ repoId, item }: { repoId: string; item: import("@/lib/pdg/types").WorktreeStatusItem }) {
+  const navigate = useNavigate();
   const [fileDialogOpen, setFileDialogOpen] = useState(false);
   const Icon = item.is_clean ? CheckCircle2 : XCircle;
   const colorClass = item.is_clean
@@ -834,19 +837,40 @@ function WorktreeStatusItem({ repoId, item }: { repoId: string; item: import("@/
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {!item.is_clean ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFileDialogOpen(true);
-                }}
-                className="h-7 px-2 text-xs"
-                title="View changed files"
-              >
-                <FileText className="h-3.5 w-3.5 mr-1" />
-                Files
-              </Button>
+              <>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate({
+                      to: "/repos/diff",
+                      search: {
+                        repoId,
+                        worktreeName: item.name || undefined,
+                        isPrimary: item.is_primary,
+                      },
+                    });
+                  }}
+                  className="h-7 px-3 text-xs gap-1.5"
+                  title="View git diff (full page)"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  View Diff
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFileDialogOpen(true);
+                  }}
+                  className="h-7 px-2 text-xs"
+                  title="Quick file list"
+                >
+                  Files
+                </Button>
+              </>
             ) : null}
             <Icon className={cn("h-5 w-5", colorClass)} />
           </div>
@@ -887,6 +911,8 @@ function FileStatusDialog({
   worktreeName: string | null;
   isPrimary: boolean;
 }) {
+  const [showFullscreenDiff, setShowFullscreenDiff] = useState(false);
+
   const gitStatusQuery = useQuery({
     queryKey: ["git-status", repoId, worktreeName],
     queryFn: () =>
@@ -897,6 +923,21 @@ function FileStatusDialog({
   });
 
   const gitStatus = gitStatusQuery.data;
+
+  if (showFullscreenDiff && gitStatus) {
+    return (
+      <GitDiffViewer
+        repoId={repoId}
+        worktreeName={worktreeName}
+        isPrimary={isPrimary}
+        files={gitStatus.files}
+        onClose={() => {
+          setShowFullscreenDiff(false);
+          onOpenChange(false);
+        }}
+      />
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -987,7 +1028,16 @@ function FileStatusDialog({
           <div className="py-8 text-center text-sm text-muted-foreground">Loading file details...</div>
         )}
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 flex justify-between">
+          <Button
+            variant="outline"
+            onClick={() => setShowFullscreenDiff(true)}
+            className="gap-2"
+            disabled={!gitStatus || gitStatus.summary.total === 0}
+          >
+            <Maximize2 className="h-4 w-4" />
+            View Full Diff
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

@@ -47,6 +47,8 @@ export interface PdgClient {
   deleteRepo(repoId: string): Promise<void>;
   getRepoStatus(repoId: string): Promise<import("./types").MultiWorktreeStatus>;
   getRepoGitStatus(repoId: string): Promise<import("./types").GitStatus>;
+  getRepoFileDiff(repoId: string, filePath: string, staged: boolean): Promise<import("./types").GitFileDiff>;
+  getRepoFileContent(repoId: string, filePath: string): Promise<import("./types").GitFileContent>;
 
   listWorktrees(repoId: string): Promise<WorktreeInfo[]>;
   createWorktree(
@@ -56,6 +58,8 @@ export interface PdgClient {
   ): Promise<WorktreeCreated>;
   getWorktreeStatus(repoId: string, name: string): Promise<WorktreeStatus>;
   getWorktreeGitStatus(repoId: string, name: string): Promise<import("./types").GitStatus>;
+  getWorktreeFileDiff(repoId: string, name: string, filePath: string, staged: boolean): Promise<import("./types").GitFileDiff>;
+  getWorktreeFileContent(repoId: string, name: string, filePath: string): Promise<import("./types").GitFileContent>;
   deleteWorktree(
     repoId: string,
     name: string,
@@ -307,6 +311,26 @@ function makeMockClient(): PdgClient {
       return this._generateMockGitStatus();
     },
 
+    async getRepoFileDiff(repoId, filePath, staged) {
+      await delay();
+      return this._generateMockFileDiff(filePath, staged);
+    },
+
+    async getRepoFileContent(repoId, filePath) {
+      await delay();
+      return this._generateMockFileContent(filePath);
+    },
+
+    async getWorktreeFileDiff(repoId, name, filePath, staged) {
+      await delay();
+      return this._generateMockFileDiff(filePath, staged);
+    },
+
+    async getWorktreeFileContent(repoId, name, filePath) {
+      await delay();
+      return this._generateMockFileContent(filePath);
+    },
+
     _generateMockGitStatus(): import("./types").GitStatus {
       const fileCount = Math.floor(Math.random() * 10);
       const files: import("./types").GitFileStatus[] = [];
@@ -344,6 +368,90 @@ function makeMockClient(): PdgClient {
           untracked: files.filter(f => f.status === "untracked").length,
           conflicts: 0,
         },
+      };
+    },
+
+    _generateMockFileDiff(filePath: string, staged: boolean): import("./types").GitFileDiff {
+      const mockDiffs = [
+        `@@ -1,5 +1,8 @@
+ import { useState } from 'react';
+-import { Button } from './components';
++import { Button, Input } from './components';
++import { toast } from 'sonner';
+
+ export function App() {
+-  const [count, setCount] = useState(0);
++  const [count, setCount] = useState(0);
++  const [name, setName] = useState('');
++
+   return (`,
+        `@@ -12,7 +12,10 @@ export interface Config {
+   port: number;
+   host: string;
+-  debug: boolean;
++  debug?: boolean;
++  logging: {
++    level: string;
++    format: string;
++  };
+ }`,
+        `@@ -45,3 +45,7 @@ async function main() {
+   console.log('Server started');
+ }
+
++// Graceful shutdown
++process.on('SIGTERM', () => {
++  console.log('Shutting down...');
++});`,
+      ];
+
+      return {
+        path: filePath,
+        diff: mockDiffs[Math.floor(Math.random() * mockDiffs.length)],
+        staged,
+      };
+    },
+
+    _generateMockFileContent(filePath: string): import("./types").GitFileContent {
+      const mockContent = `import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+
+export function ExampleComponent() {
+  const [count, setCount] = useState(0);
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    console.log('Component mounted');
+    return () => console.log('Component unmounted');
+  }, []);
+
+  const handleClick = () => {
+    setCount(prev => prev + 1);
+    toast.success(\`Count is now \${count + 1}\`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h1>Example Component</h1>
+      <p>Count: {count}</p>
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Enter your name"
+      />
+      <Button onClick={handleClick}>
+        Increment
+      </Button>
+    </div>
+  );
+}`;
+
+      return {
+        path: filePath,
+        content: mockContent,
+        staged: false,
       };
     },
 
@@ -566,6 +674,8 @@ function makeHttpClient(baseUrl: string): PdgClient {
     deleteRepo: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}`), { method: "DELETE" }),
     getRepoStatus: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/status/all`)),
     getRepoGitStatus: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/git/status`)),
+    getRepoFileDiff: (repoId, filePath, staged) => json(url(`/repos/${encodeURIComponent(repoId)}/git/diff${qs({ path: filePath, staged: staged ? "true" : "false" })}`)),
+    getRepoFileContent: (repoId, filePath) => json(url(`/repos/${encodeURIComponent(repoId)}/git/file${qs({ path: filePath })}`)),
 
     listWorktrees: (repoId) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees`)),
     createWorktree: (repoId, body, params) =>
@@ -575,6 +685,8 @@ function makeHttpClient(baseUrl: string): PdgClient {
       }),
     getWorktreeStatus: (repoId, name) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/status`)),
     getWorktreeGitStatus: (repoId, name) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/git/status`)),
+    getWorktreeFileDiff: (repoId, name, filePath, staged) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/git/diff${qs({ path: filePath, staged: staged ? "true" : "false" })}`)),
+    getWorktreeFileContent: (repoId, name, filePath) => json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}/git/file${qs({ path: filePath })}`)),
     deleteWorktree: (repoId, name, params) =>
       json(url(`/repos/${encodeURIComponent(repoId)}/worktrees/${encodeURIComponent(name)}${qs(params as Record<string, unknown>)}`), {
         method: "DELETE",
